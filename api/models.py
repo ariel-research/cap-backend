@@ -49,3 +49,16 @@ class Ranking(models.Model):
 
     def __str__(self):
         return '%d %s' % (self.student.student_id, self.course_group.name)
+
+
+class Result(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    selected = models.BooleanField()
+
+    class Meta:
+        unique_together = (('course', 'student'),)
+        index_together = (('course', 'student'),)
+
+    def __str__(self):
+        return '%d מספר קורס: %d %s' % (self.student.student_id, self.course.id, self.course.course_group.name)

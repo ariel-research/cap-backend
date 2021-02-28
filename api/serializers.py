@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Course_group, Student, Ranking
+from .models import Course, Course_group, Student, Ranking, Result
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -26,3 +26,9 @@ class RankingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ranking
         fields = ['id', 'rank', 'student', 'course_group']
+
+
+class ResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Result
+        fields = ['id', 'student', 'course', 'selected']

@@ -2,8 +2,9 @@ from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Course, Course_group, Student, Ranking
-from .serializers import CourseSerializer, Course_groupSerializer, StudentSerializer, RankingSerializer
+from .models import Course, Course_group, Student, Ranking, Result
+from .serializers import CourseSerializer, Course_groupSerializer, StudentSerializer, RankingSerializer, \
+    ResultSerializer
 
 
 class Course_groupViewSet(viewsets.ModelViewSet):
@@ -69,11 +70,16 @@ class RankingViewSet(viewsets.ModelViewSet):
             for index, movie_rank in enumerate(ranking):
                 course = Course_group.objects.get(name=movie_rank['name'])
                 student = Student.objects.get(user=1)
-                Ranking.objects.create(course_group=course, student=student, rank=index+1)
+                Ranking.objects.create(course_group=course, student=student, rank=index + 1)
             return Response('Ranking created', status=status.HTTP_200_OK)
         else:  # the user rank his courses (update)
             for index, movie_rank in enumerate(ranking):
                 last_rank = Ranking.objects.get(course_group=movie_rank['id'], student=1)
-                last_rank.rank = index+1
+                last_rank.rank = index + 1
                 last_rank.save()
             return Response('Ranking updated', status=status.HTTP_200_OK)
+
+
+class ResultViewSet(viewsets.ModelViewSet):
+    queryset = Result.objects.all()
+    serializer_class = ResultSerializer
