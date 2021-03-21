@@ -3,9 +3,22 @@ from django.core.validators import RegexValidator
 from django.contrib.auth.models import User
 
 
+class Office(models.Model):
+    office_id = models.CharField(unique=True, max_length=32)
+    name = models.CharField(max_length=70, unique=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+
+    def __str__(self):
+        return "%s" % self.name
+
+
 class Course_group(models.Model):
     name = models.CharField(max_length=70, unique=True)
     syllabus = models.FileField(upload_to='syllabus/')
+    is_elective = models.BooleanField(default=True)
+    office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="courses", default=1)
 
     def __str__(self):
         return self.name
@@ -33,6 +46,8 @@ class Student(models.Model):
         RegexValidator(regex='^.{9}$', message='תעודת הזהות חייבת להיות 9 ספרות', code='nomatch')])
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     amount_elective = models.IntegerField()
+    office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="students", default=1)
+    courses = models.ManyToManyField(Course)
 
     def __str__(self):
         return "%s's profile" % self.user

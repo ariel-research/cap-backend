@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Course_group, Student, Ranking, Result
+from .models import Course, Course_group, Student, Ranking, Result, Office
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 
@@ -27,13 +27,24 @@ class Course_groupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course_group
-        fields = ['id', 'name', 'courses']
+        fields = ['id', 'name', 'is_elective', 'office', 'courses']
 
 
 class StudentSerializer(serializers.ModelSerializer):
+    courses = CourseSerializer(many=True)
+
     class Meta:
         model = Student
-        fields = ['student_id', 'user', 'amount_elective']
+        fields = ['student_id', 'user', 'amount_elective', 'office', 'courses']
+
+
+class OfficeSerializer(serializers.ModelSerializer):
+    students = StudentSerializer(many=True)
+    courses = Course_groupSerializer(many=True)
+
+    class Meta:
+        model = Office
+        fields = ['office_id', 'name', 'user', 'start_time', 'end_time', 'students', 'courses']
 
 
 class RankingSerializer(serializers.ModelSerializer):

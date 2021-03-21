@@ -4,10 +4,10 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Course, Course_group, Student, Ranking, Result
+from .models import Course, Course_group, Student, Ranking, Result, Office
 from django.contrib.auth.models import User
 from .serializers import CourseSerializer, Course_groupSerializer, StudentSerializer, RankingSerializer, \
-    ResultSerializer, UserSerializer
+    ResultSerializer, UserSerializer, OfficeSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -65,6 +65,11 @@ class CourseViewSet(viewsets.ModelViewSet):
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+
+
+class OfficeViewSet(viewsets.ModelViewSet):
+    queryset = Office.objects.all()
+    serializer_class = OfficeSerializer
 
 
 class RankingViewSet(viewsets.ModelViewSet):
