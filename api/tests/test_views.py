@@ -130,6 +130,25 @@ class TestViews(TestCase):
         self.student = Student.objects.create(student_id=205555407, user=self.user, amount_elective=5, office=office1)
         self.client.force_login(user=self.user)
 
+    def test_get_course_group(self):
+        print("start test_get_course_group")
+        response = self.client.get('/api/course_group/get_course_group/', format='json', HTTP_AUTHORIZATION='Token {}'
+                                   .format(self.token))
+        self.assertEquals(response.status_code, 200)
+        data = response.render().content
+        courses_group = json.loads(data, object_hook=lambda d: SimpleNamespace(**d))
+        course_group_name = []
+        for val in courses_group:
+            course_group_name.append(val.name)
+        self.assertEquals(course_group_name, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
+
+    def test_get_course_group_error(self):
+        print("start test_get_course_group_error")
+        response = self.client.get('/api/course_group/', format='json', HTTP_AUTHORIZATION='Token {}'
+                                   .format(self.token))
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.data['message'], 'לא ניתן לקבל קבוצות קורסים באופן זה')
+
     def test_get_semester_a(self):
         print("start test_get_semester_a")
         response = self.client.get('/api/courses/get_semester_a/', format='json', HTTP_AUTHORIZATION='Token {}'
@@ -186,3 +205,16 @@ class TestViews(TestCase):
         for val in courses_group:
             courses_group_id.append(val.id)
         self.assertEquals(courses_group_id, my_list_id)
+
+    def test_ranking_errors(self):
+        print("start test_ranking_errors")
+        courses_group = Course_group.objects.filter(office__office_id="100").filter(is_elective=True)
+        serializer_course_group = Course_groupSerializer(list(courses_group), many=True)
+        response = self.client.post('/api/ranking/', {'ranks': serializer_course_group.data}, format='json'
+                                    , HTTP_AUTHORIZATION='Token {}'.format(self.token))
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.data['message'], 'לא ניתן ליצור דירוג באופן זה')
+        response = self.client.put('/api/ranking/1/', {'ranks': serializer_course_group.data}, format='json'
+                                   , HTTP_AUTHORIZATION='Token {}'.format(self.token))
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.data['message'], 'לא ניתן לעדכן דירוג באופן זה')
