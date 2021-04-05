@@ -1,18 +1,19 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Course, Course_group, Student, Ranking, Result, Office
 from django.contrib.auth.models import User
-from .serializers import CourseSerializer, Course_groupSerializer, StudentSerializer, RankingSerializer, \
-    ResultSerializer, UserSerializer, OfficeSerializer
+from .serializers import CourseSerializer, Course_groupSerializer, Course_groupMiniSerializer, StudentSerializer,\
+    RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = (AllowAny,)
 
 
 class Course_groupViewSet(viewsets.ModelViewSet):
@@ -24,10 +25,14 @@ class Course_groupViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'])
     def get_last_rating(self, request):
         user = request.user
-        ranking = Ranking.objects.filter(student=user.id).order_by('rank')
+        student = Student.objects.get(user=user)
+        student_office = Student.objects.get(user=user).office
+        ranking = Ranking.objects.filter(student=student).filter(course_group__is_elective=True)\
+            .filter(course_group__office=student_office).order_by('rank')
         if len(ranking) == 0:  # the user not rank his courses
-            courses = Course_group.objects.all()
-            serializer = Course_groupSerializer(courses, many=True)
+            courses = Course_group.objects.filter(is_elective=True)\
+                .filter(office=student_office)
+            serializer = Course_groupMiniSerializer(courses, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:  # the user rank his courses, show his last rank
             courses = []
@@ -45,19 +50,25 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['GET'])
     def get_semester_a(self, request):
-        courses = Course.objects.filter(Semester="א")
+        user = request.user
+        student_office = Student.objects.get(user=user).office
+        courses = Course.objects.filter(Semester="א").filter(course_group__office=student_office)
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
     def get_semester_b(self, request):
-        courses = Course.objects.filter(Semester="ב")
+        user = request.user
+        student_office = Student.objects.get(user=user).office
+        courses = Course.objects.filter(Semester="ב").filter(course_group__office=student_office)
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
     def get_semester_s(self, request):
-        courses = Course.objects.filter(Semester="ק")
+        user = request.user
+        student_office = Student.objects.get(user=user).office
+        courses = Course.objects.filter(Semester="ק").filter(course_group__office=student_office)
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -65,11 +76,13 @@ class CourseViewSet(viewsets.ModelViewSet):
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+    permission_classes = (AllowAny,)
 
 
 class OfficeViewSet(viewsets.ModelViewSet):
     queryset = Office.objects.all()
     serializer_class = OfficeSerializer
+    permission_classes = (AllowAny,)
 
 
 class RankingViewSet(viewsets.ModelViewSet):

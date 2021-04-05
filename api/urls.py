@@ -7,7 +7,7 @@ from .views import CourseViewSet, Course_groupViewSet, StudentViewSet, RankingVi
 
 router = routers.DefaultRouter()
 router.register('users', UserViewSet)
-router.register('courses', CourseViewSet)
+router.register('courses', CourseViewSet, basename='courses')
 router.register('course_group', Course_groupViewSet)
 router.register('student', StudentViewSet)
 router.register('office', OfficeViewSet)

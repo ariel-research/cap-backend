@@ -30,6 +30,12 @@ class Course_groupSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'is_elective', 'office', 'courses']
 
 
+class Course_groupMiniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course_group
+        fields = ['id', 'name']
+
+
 class StudentSerializer(serializers.ModelSerializer):
     courses = CourseSerializer(many=True)
 
