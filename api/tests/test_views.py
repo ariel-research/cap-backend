@@ -15,32 +15,33 @@ import pytz
 class TestViews(TestCase):
     def setUp(self):
         # add users for the office objects
-        user_office_test1 = User.objects.create_user(username="user_test1", password="19283746")
+        self.user_office_test1 = User.objects.create_user(username="user_test1", password="19283746")
+        self.office_token = Token.objects.create(user=self.user_office_test1)
         user_office_test2 = User.objects.create_user(username="user_test2", password="19283746")
         # add start time and end time for the office objects
-        start_time = datetime.datetime(2021, 7, 29, 12, 0, 0, 0, tzinfo=pytz.timezone('Israel'))
-        end_time = datetime.datetime(2021, 7, 31, 12, 0, 0, 0, tzinfo=pytz.timezone('Israel'))
+        start_time = datetime.datetime(2021, 7, 29, 12, 0, 0, tzinfo=pytz.UTC)
+        end_time = datetime.datetime(2021, 7, 31, 12, 0, 0, tzinfo=pytz.UTC)
         # add office objects
-        office1 = Office.objects.create(office_id="100", name="office_test1", user=user_office_test1,
-                                        start_time=start_time,
-                                        end_time=end_time)
+        self.office1 = Office.objects.create(office_id="100", name="office_test1", user=self.user_office_test1,
+                                             start_time=start_time,
+                                             end_time=end_time)
         office2 = Office.objects.create(office_id="99", name="office_test2", user=user_office_test2,
                                         start_time=start_time,
                                         end_time=end_time)
         # add Course_group(elective, office1) objects
-        course_group_a = Course_group.objects.create(name="a", office=office1, is_elective=True)
-        course_group_b = Course_group.objects.create(name="b", office=office1, is_elective=True)
-        course_group_c = Course_group.objects.create(name="c", office=office1, is_elective=True)
-        course_group_d = Course_group.objects.create(name="d", office=office1, is_elective=True)
-        course_group_e = Course_group.objects.create(name="e", office=office1, is_elective=True)
-        course_group_f = Course_group.objects.create(name="f", office=office1, is_elective=True)
-        course_group_g = Course_group.objects.create(name="g", office=office1, is_elective=True)
-        course_group_h = Course_group.objects.create(name="h", office=office1, is_elective=True)
+        course_group_a = Course_group.objects.create(name="a", office=self.office1, is_elective=True)
+        course_group_b = Course_group.objects.create(name="b", office=self.office1, is_elective=True)
+        course_group_c = Course_group.objects.create(name="c", office=self.office1, is_elective=True)
+        course_group_d = Course_group.objects.create(name="d", office=self.office1, is_elective=True)
+        course_group_e = Course_group.objects.create(name="e", office=self.office1, is_elective=True)
+        course_group_f = Course_group.objects.create(name="f", office=self.office1, is_elective=True)
+        course_group_g = Course_group.objects.create(name="g", office=self.office1, is_elective=True)
+        course_group_h = Course_group.objects.create(name="h", office=self.office1, is_elective=True)
         # add Course_group(not elective, office1) objects
-        course_group_i = Course_group.objects.create(name="i", office=office1, is_elective=False)
-        course_group_j = Course_group.objects.create(name="j", office=office1, is_elective=False)
-        course_group_k = Course_group.objects.create(name="k", office=office1, is_elective=False)
-        course_group_l = Course_group.objects.create(name="l", office=office1, is_elective=False)
+        course_group_i = Course_group.objects.create(name="i", office=self.office1, is_elective=False)
+        course_group_j = Course_group.objects.create(name="j", office=self.office1, is_elective=False)
+        course_group_k = Course_group.objects.create(name="k", office=self.office1, is_elective=False)
+        course_group_l = Course_group.objects.create(name="l", office=self.office1, is_elective=False)
         # add Course_group(elective, office2) objects
         course_group_m = Course_group.objects.create(name="m", office=office2, is_elective=True)
         course_group_n = Course_group.objects.create(name="n", office=office2, is_elective=True)
@@ -125,12 +126,64 @@ class TestViews(TestCase):
                                           course_group=course_group_p)
 
         self.client = APIClient()
-        self.user = User.objects.create_superuser('admin', 'admin@admin.com', 'admin123')
+        self.user = User.objects.create_user('admin', 'admin@admin.com', 'admin123')
         self.token = Token.objects.create(user=self.user)
-        self.student = Student.objects.create(student_id=205555407, user=self.user, amount_elective=5, office=office1)
+        self.student = Student.objects.create(student_id=205555407, user=self.user, amount_elective=5,
+                                              office=self.office1)
+
+    def test_student_or_office(self):
+        # student
         self.client.force_login(user=self.user)
+        print("start test_student_or_office")
+        response = self.client.get('/api/student/student_or_office/', format='json', HTTP_AUTHORIZATION='Token {}'
+                                   .format(self.token))
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data, 1)
+        self.client.logout()
+        # office
+        self.client.force_login(user=self.user_office_test1)
+        response = self.client.get('/api/student/student_or_office/', format='json', HTTP_AUTHORIZATION='Token {}'
+                                   .format(self.office_token))
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data, 2)
+        self.client.logout()
+        # not office or student
+        just_a_user = User.objects.create_user(username="just_a_user", password="19283746")
+        just_a_user_token = Token.objects.create(user=just_a_user)
+        self.client.force_login(user=just_a_user)
+        response = self.client.get('/api/student/student_or_office/', format='json', HTTP_AUTHORIZATION='Token {}'
+                                   .format(just_a_user_token))
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data, 3)
+        self.client.logout()
+
+    def test_get_time(self):
+        self.client.force_login(user=self.user)
+        print("start test_get_time")
+        # if the ranking time has not started
+        response = self.client.get('/api/office/get_time/', format='json', HTTP_AUTHORIZATION='Token {}'
+                                   .format(self.token))
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data['value'], 0)
+        # if the ranking ended
+        start_time = datetime.datetime(2021, 4, 7, 12, 0, 0, tzinfo=pytz.UTC)
+        end_time = datetime.datetime(2021, 4, 8, 12, 0, 0, tzinfo=pytz.UTC)
+        Office.objects.filter(office_id=self.office1.office_id).update(start_time=start_time)
+        Office.objects.filter(office_id=self.office1.office_id).update(end_time=end_time)
+        response = self.client.get('/api/office/get_time/', format='json', HTTP_AUTHORIZATION='Token {}'
+                                   .format(self.token))
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data['value'], 0)
+        # if this is the ranking time
+        end_time = datetime.datetime(2021, 8, 15, 12, 0, 0, tzinfo=pytz.UTC)
+        Office.objects.filter(office_id=self.office1.office_id).update(end_time=end_time)
+        response = self.client.get('/api/office/get_time/', format='json', HTTP_AUTHORIZATION='Token {}'
+                                   .format(self.token))
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data['value'], 1)
 
     def test_get_course_group(self):
+        self.client.force_login(user=self.user)
         print("start test_get_course_group")
         response = self.client.get('/api/course_group/get_course_group/', format='json', HTTP_AUTHORIZATION='Token {}'
                                    .format(self.token))
@@ -143,6 +196,7 @@ class TestViews(TestCase):
         self.assertEquals(course_group_name, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
 
     def test_get_course_group_error(self):
+        self.client.force_login(user=self.user)
         print("start test_get_course_group_error")
         response = self.client.get('/api/course_group/', format='json', HTTP_AUTHORIZATION='Token {}'
                                    .format(self.token))
@@ -150,6 +204,7 @@ class TestViews(TestCase):
         self.assertEquals(response.data['message'], 'לא ניתן לקבל קבוצות קורסים באופן זה')
 
     def test_get_semester_a(self):
+        self.client.force_login(user=self.user)
         print("start test_get_semester_a")
         response = self.client.get('/api/courses/get_semester_a/', format='json', HTTP_AUTHORIZATION='Token {}'
                                    .format(self.token))
@@ -162,6 +217,7 @@ class TestViews(TestCase):
         self.assertEquals(courses_id, ['101', '102', '103', '107', '108', '109', '113', '114', '115', '119', '120'])
 
     def test_get_semester_b(self):
+        self.client.force_login(user=self.user)
         print("start test_get_semester_b")
         response = self.client.get('/api/courses/get_semester_b/', format='json', HTTP_AUTHORIZATION='Token {}'
                                    .format(self.token))
@@ -174,6 +230,7 @@ class TestViews(TestCase):
         self.assertEquals(courses_id, ['104', '105', '106', '110', '111', '112', '116', '117', '118'])
 
     def test_ranking(self):
+        self.client.force_login(user=self.user)
         print("start test_get_last_rating, the user not rank his courses")
         response = self.client.get('/api/course_group/get_last_rating/', format='json', HTTP_AUTHORIZATION='Token {}'
                                    .format(self.token))
@@ -207,6 +264,7 @@ class TestViews(TestCase):
         self.assertEquals(courses_group_id, my_list_id)
 
     def test_ranking_errors(self):
+        self.client.force_login(user=self.user)
         print("start test_ranking_errors")
         courses_group = Course_group.objects.filter(office__office_id="100").filter(is_elective=True)
         serializer_course_group = Course_groupSerializer(list(courses_group), many=True)

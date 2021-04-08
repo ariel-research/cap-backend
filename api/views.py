@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status
+from django.utils import timezone
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
@@ -88,13 +89,53 @@ class CourseViewSet(viewsets.ModelViewSet):
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
-    permission_classes = (AllowAny,)
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    @action(detail=False, methods=['GET'])
+    def student_or_office(self, request):
+        user = request.user
+        try:
+            student = Student.objects.get(user=user)
+            return Response(1, status=status.HTTP_200_OK)  # 1 means student
+        except Student.DoesNotExist:
+            try:
+                office = Office.objects.get(user=user)
+                return Response(2, status=status.HTTP_200_OK)  # 2 means office
+            except Office.DoesNotExist:
+                return Response(3, status=status.HTTP_200_OK)  # 3 means this user is not student and not office
 
 
 class OfficeViewSet(viewsets.ModelViewSet):
     queryset = Office.objects.all()
     serializer_class = OfficeSerializer
-    permission_classes = (AllowAny,)
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    @action(detail=False, methods=['GET'])
+    def get_time(self, request):
+        tz_now = timezone.localtime(timezone.now())
+        user = request.user
+        office = Student.objects.get(user=user).office
+        start_time = office.start_time
+        end_time = office.end_time
+        # if the ranking time has not started
+        if start_time >= tz_now:
+            timestamp_str = start_time.strftime(" %H:%M:%S ") + "בשעה" + start_time.strftime(" %d/%m/%Y")
+            text = timestamp_str + ' הדירוג יפתח ב: '
+            response = {'message': text, 'value': 0}
+            return Response(response, status=status.HTTP_200_OK)
+        # if the ranking ended
+        if end_time < tz_now:
+            response = {'message': 'הדירוג נסגר', 'value': 0}
+            return Response(response, status=status.HTTP_200_OK)
+        # if this is the ranking time
+        current_time = end_time - tz_now
+        hours = int(((end_time - tz_now).total_seconds() / 60.0 - 180) / 60)
+        minutes = int(((end_time - tz_now).total_seconds() / 60.0 - 180) % 60)
+        time = str(hours) + ":" + str(minutes)
+        response = {'message': time, 'value': 1}
+        return Response(response, status=status.HTTP_200_OK)
 
 
 class RankingViewSet(viewsets.ModelViewSet):
