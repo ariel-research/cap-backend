@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Course, Course_group, Student, Ranking, Result, Office
 from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 from .serializers import CourseSerializer, Course_groupSerializer, Course_groupMiniSerializer, StudentSerializer, \
     RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer
 
@@ -61,6 +62,20 @@ class CourseViewSet(viewsets.ModelViewSet):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
+    @action(detail=False, methods=['POST'])
+    def create_objects(self, request):
+        user = request.user
+        office = Office.objects.get(user=user)
+        # Read the JSON
+        titles = request.data['courses']
+        # Create a Django model object for each object in the JSON
+        for course in titles['courses']:
+            course_group = Course_group.objects.get(name=course['name'])
+            Course.objects.create(course_id=course['id'], Semester=course['semester'], lecturer=course['lecturer'],
+                                  day=course['day'], capacity=course['capacity'], time_start=course['time_start'],
+                                  time_end=course['time_end'], course_group=course_group)
+        return Response('objects of courses created', status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['GET'])
     def get_semester_a(self, request):
         user = request.user
@@ -105,6 +120,26 @@ class StudentViewSet(viewsets.ModelViewSet):
             except Office.DoesNotExist:
                 return Response(3, status=status.HTTP_200_OK)  # 3 means this user is not student and not office
 
+    @action(detail=False, methods=['POST'])
+    def create_objects(self, request):
+        user = request.user
+        office = Office.objects.get(user=user)
+        # Read the JSON
+        titles = request.data['students']
+        # Create a Django model object for each object in the JSON
+        for student in titles['students']:
+            student_user = User.objects.create_user(username=student['name'], password=student['password'],
+                                                    email=student['email'])
+            Token.objects.create(user=student_user)
+            student_obj = Student.objects.create(user=student_user, student_id=student['id'],
+                                                 amount_elective=student['amount_elective'], office=office)
+            student_obj.save()
+            for course in student['courses']:
+                cur = Course.objects.get(course_id=course)
+                student_obj.courses.add(cur)
+
+        return Response('objects of student  created', status=status.HTTP_200_OK)
+
 
 class OfficeViewSet(viewsets.ModelViewSet):
     queryset = Office.objects.all()
@@ -121,8 +156,8 @@ class OfficeViewSet(viewsets.ModelViewSet):
         end_time = office.end_time
         # if the ranking time has not started
         if start_time >= tz_now:
-            timestamp_str = start_time.strftime(" %H:%M:%S ") + "בשעה" + start_time.strftime(" %d/%m/%Y")
-            text = timestamp_str + ' הדירוג יפתח ב: '
+            timestamp_str = start_time.strftime(" %d/%m") + " בשעה " + start_time.strftime(" %H:%M ")
+            text = 'הדירוג יפתח ב: ' + timestamp_str
             response = {'message': text, 'value': 0}
             return Response(response, status=status.HTTP_200_OK)
         # if the ranking ended
@@ -131,9 +166,10 @@ class OfficeViewSet(viewsets.ModelViewSet):
             return Response(response, status=status.HTTP_200_OK)
         # if this is the ranking time
         current_time = end_time - tz_now
-        hours = int(((end_time - tz_now).total_seconds() / 60.0 - 180) / 60)
-        minutes = int(((end_time - tz_now).total_seconds() / 60.0 - 180) % 60)
-        time = str(hours) + ":" + str(minutes)
+        # hours = int(((end_time - tz_now).total_seconds() / 60.0 - 180) / 60)
+        # minutes = int(((end_time - tz_now).total_seconds() / 60.0 - 180) % 60)
+        timestamp_str = start_time.strftime(" %d/%m") + " בשעה " + start_time.strftime(" %H:%M ")
+        time = 'הדירוג ייסגר ב: ' + timestamp_str
         response = {'message': time, 'value': 1}
         return Response(response, status=status.HTTP_200_OK)
 

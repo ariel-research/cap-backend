@@ -1,6 +1,5 @@
 from django.test import TestCase
-from django.urls import reverse
-from api.models import Course, Course_group, Office, Student, Ranking
+from api.models import Course, Course_group, Office, Student
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from api.serializers import Course_groupSerializer
@@ -155,6 +154,45 @@ class TestViews(TestCase):
                                    .format(just_a_user_token))
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data, 3)
+        self.client.logout()
+
+    def test_create_objects(self):
+        self.client.force_login(user=self.user_office_test1)
+        json = {
+            "students": [
+                {
+                    "id": "01",
+                    "name": "Tom",
+                    "password": "19283746",
+                    "email": "tom@gmail.com",
+                    "amount_elective": 5,
+                    "courses": ["117", "120"]
+                },
+                {
+                    "id": "02",
+                    "name": "Tami",
+                    "password": "19283746",
+                    "email": "tami@gmail.com",
+                    "amount_elective": 5,
+                    "courses": ["117", "118"]
+                },
+                {
+                    "id": "03",
+                    "name": "Som",
+                    "password": "19283746",
+                    "email": "Som@gmail.com",
+                    "amount_elective": 5,
+                    "courses": ["119", "120"]
+                },
+            ]
+        }
+        response = self.client.post('/api/student/create_objects/', {'students': json}
+                                    , format='json', HTTP_AUTHORIZATION='Token {}'.format(self.office_token))
+        self.assertEquals(response.status_code, 200)
+        student_created = Student.objects.get(student_id="01")
+        self.assertEquals(student_created.amount_elective, 5)
+        self.assertEquals(student_created.user.username, "Tom")
+        self.assertEquals(student_created.courses.get(course_id=117).course_id, '117')
         self.client.logout()
 
     def test_get_time(self):
