@@ -168,7 +168,7 @@ class OfficeViewSet(viewsets.ModelViewSet):
         current_time = end_time - tz_now
         # hours = int(((end_time - tz_now).total_seconds() / 60.0 - 180) / 60)
         # minutes = int(((end_time - tz_now).total_seconds() / 60.0 - 180) % 60)
-        timestamp_str = start_time.strftime(" %d/%m") + " בשעה " + start_time.strftime(" %H:%M ")
+        timestamp_str = start_time.strftime(" %d/%m") + " בשעה " + end_time.strftime(" %H:%M ")
         time = 'הדירוג ייסגר ב: ' + timestamp_str
         response = {'message': time, 'value': 1}
         return Response(response, status=status.HTTP_200_OK)
