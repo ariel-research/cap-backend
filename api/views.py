@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from datetime import timedelta
 from rest_framework import viewsets, status
 from django.utils import timezone
 from rest_framework.authentication import TokenAuthentication
@@ -9,7 +10,12 @@ from .models import Course, Course_group, Student, Ranking, Result, Office
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from .serializers import CourseSerializer, Course_groupSerializer, Course_groupMiniSerializer, StudentSerializer, \
-    RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer
+    RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer
+
+
+# take second element for sort
+def take_score(elem):
+    return elem.get("score")
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -42,13 +48,19 @@ class Course_groupViewSet(viewsets.ModelViewSet):
         if len(ranking) == 0:  # the user not rank his courses
             courses = Course_group.objects.filter(is_elective=True) \
                 .filter(office=student_office)
-            serializer = Course_groupMiniSerializer(courses, many=True)
+            default_ranking = []
+            for course in courses:
+                rank = {"name": course.name, "score": 50}
+                default_ranking.append(rank)
+            serializer = RankingMiniSerializer(default_ranking, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:  # the user rank his courses, show his last rank
-            courses = []
+            user_ranking = []
             for rank in ranking:
-                courses.append(Course_group.objects.get(name=rank.course_group.name))
-            serializer = Course_groupSerializer(courses, many=True)
+                rank = {"name": rank.course_group.name, "score": rank.rank}
+                user_ranking.append(rank)
+            user_ranking.sort(key=take_score, reverse=True)
+            serializer = RankingMiniSerializer(user_ranking, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     def list(self, request, *args, **kwargs):
@@ -152,8 +164,8 @@ class OfficeViewSet(viewsets.ModelViewSet):
         tz_now = timezone.localtime(timezone.now())
         user = request.user
         office = Student.objects.get(user=user).office
-        start_time = office.start_time
-        end_time = office.end_time
+        start_time = office.start_time + timedelta(hours=3)
+        end_time = office.end_time + timedelta(hours=3)
         # if the ranking time has not started
         if start_time >= tz_now:
             timestamp_str = start_time.strftime(" %d/%m") + " בשעה " + start_time.strftime(" %H:%M ")
@@ -168,7 +180,7 @@ class OfficeViewSet(viewsets.ModelViewSet):
         current_time = end_time - tz_now
         # hours = int(((end_time - tz_now).total_seconds() / 60.0 - 180) / 60)
         # minutes = int(((end_time - tz_now).total_seconds() / 60.0 - 180) % 60)
-        timestamp_str = start_time.strftime(" %d/%m") + " בשעה " + end_time.strftime(" %H:%M ")
+        timestamp_str = end_time.strftime(" %d/%m") + " בשעה " + end_time.strftime(" %H:%M ")
         time = 'הדירוג ייסגר ב: ' + timestamp_str
         response = {'message': time, 'value': 1}
         return Response(response, status=status.HTTP_200_OK)
@@ -187,14 +199,14 @@ class RankingViewSet(viewsets.ModelViewSet):
         is_rated = Ranking.objects.filter(student=student).order_by('rank')
         ranking = request.data['ranks']
         if len(is_rated) == 0:  # the user not rank his courses (create)
-            for index, movie_rank in enumerate(ranking):
+            for movie_rank in ranking:
                 course = Course_group.objects.get(name=movie_rank['name'])
-                Ranking.objects.create(course_group=course, student=student, rank=index + 1)
+                Ranking.objects.create(course_group=course, student=student, rank=movie_rank['score'])
             return Response('Ranking created', status=status.HTTP_200_OK)
         else:  # the user rank his courses (update)
-            for index, movie_rank in enumerate(ranking):
-                last_rank = Ranking.objects.get(course_group=movie_rank['id'], student=student)
-                last_rank.rank = index + 1
+            for movie_rank in ranking:
+                last_rank = Ranking.objects.get(course_group__name=movie_rank['name'], student=student)
+                last_rank.rank = movie_rank['score']
                 last_rank.save()
             return Response('Ranking updated', status=status.HTTP_200_OK)
 

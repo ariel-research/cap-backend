@@ -1,7 +1,10 @@
+from abc import ABC
+
 from rest_framework import serializers
 from .models import Course, Course_group, Student, Ranking, Result, Office
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
+from rest_framework import serializers
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -57,6 +60,11 @@ class RankingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ranking
         fields = ['id', 'rank', 'student', 'course_group']
+
+
+class RankingMiniSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=70)
+    score = serializers.IntegerField()
 
 
 class ResultSerializer(serializers.ModelSerializer):
