@@ -198,6 +198,10 @@ class RankingViewSet(viewsets.ModelViewSet):
         student = Student.objects.get(user=user)
         is_rated = Ranking.objects.filter(student=student).order_by('rank')
         ranking = request.data['ranks']
+        is_positive = 1000 - sum(rank['score'] for rank in ranking)
+        if is_positive < 0:
+            response = {'message': 'ניתן להשתמש לכל היותר ב-1000 נק'}
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
         if len(is_rated) == 0:  # the user not rank his courses (create)
             for movie_rank in ranking:
                 course = Course_group.objects.get(name=movie_rank['name'])
@@ -206,8 +210,9 @@ class RankingViewSet(viewsets.ModelViewSet):
         else:  # the user rank his courses (update)
             for movie_rank in ranking:
                 last_rank = Ranking.objects.get(course_group__name=movie_rank['name'], student=student)
-                last_rank.rank = movie_rank['score']
-                last_rank.save()
+                if last_rank.rank != movie_rank['score']:
+                    last_rank.rank = movie_rank['score']
+                    last_rank.save()
             return Response('Ranking updated', status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
