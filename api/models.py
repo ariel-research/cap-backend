@@ -21,7 +21,7 @@ class Course_group(models.Model):
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="courses", default=1)
 
     def __str__(self):
-        return str(self.id) + " " + self.name + ", מספר קורס:"
+        return self.name
 
 
 class Course(models.Model):

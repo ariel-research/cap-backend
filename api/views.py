@@ -94,7 +94,8 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_semester_a(self, request):
         user = request.user
         student_office = Student.objects.get(user=user).office
-        courses = Course.objects.filter(Semester="א").filter(course_group__office=student_office).filter(course_group__is_elective=True)
+        courses = Course.objects.filter(Semester="א").filter(course_group__office=student_office).filter(
+            course_group__is_elective=True)
         courses_semester_a = [[[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
@@ -107,10 +108,10 @@ class CourseViewSet(viewsets.ModelViewSet):
             duration = str(datetime.combine(date.today(), time_end) - datetime.combine(date.today(), time_start))
             course['duration'] = duration[0]
             for i in range(14):
-                start_hour = i+8
-                start_table = '0'+str(start_hour)+':00'
+                start_hour = i + 8
+                start_table = '0' + str(start_hour) + ':00'
                 if start_hour > 9:
-                    start_table = str(start_hour)+':00'
+                    start_table = str(start_hour) + ':00'
                 if time_start == datetime.strptime(start_table, '%H:%M').time():
                     if course['day'] == 'א':
                         courses_semester_a[i][5].append(course)
@@ -130,7 +131,8 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_semester_b(self, request):
         user = request.user
         student_office = Student.objects.get(user=user).office
-        courses = Course.objects.filter(Semester="ב").filter(course_group__office=student_office).filter(course_group__is_elective=True)
+        courses = Course.objects.filter(Semester="ב").filter(course_group__office=student_office).filter(
+            course_group__is_elective=True)
         courses_semester_a = [[[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
@@ -299,3 +301,16 @@ class ResultViewSet(viewsets.ModelViewSet):
     serializer_class = ResultSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
+
+    @action(detail=False, methods=['GET'])
+    def get_results(self, request):
+        user = request.user
+        student = Student.objects.get(user=user)
+        results = Result.objects.filter(student=student).filter(selected=True)
+        serializer = ResultSerializer(results, many=True)
+        courses = []
+        for result in serializer.data:
+            courses.append(Course.objects.get(id=result['course']))
+        serializer = CourseSerializer(courses, many=True)
+        print(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
