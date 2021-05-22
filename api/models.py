@@ -16,12 +16,12 @@ class Office(models.Model):
 
 class Course_group(models.Model):
     name = models.CharField(max_length=70, unique=True)
-    syllabus = models.FileField(upload_to='syllabus/')
+    syllabus = models.FileField(upload_to='syllabus/', null=True, blank=True)
     is_elective = models.BooleanField(default=True)
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="courses", default=1)
 
     def __str__(self):
-        return self.name
+        return str(self.id) + " " + self.name + ", מספר קורס:"
 
 
 class Course(models.Model):
@@ -38,7 +38,7 @@ class Course(models.Model):
     course_group = models.ForeignKey(Course_group, on_delete=models.CASCADE, related_name="courses")
 
     def __str__(self):
-        return self.course_group.name + ", מספר קורס: " + self.course_id
+        return self.course_group.name + ", מספר קורס: " + str(self.course_id)
 
 
 class Student(models.Model):

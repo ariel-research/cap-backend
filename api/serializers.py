@@ -20,9 +20,10 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
+    course_group = serializers.StringRelatedField()
     class Meta:
         model = Course
-        fields = ['course_id', 'Semester', 'lecturer', 'capacity', 'day', 'time_start', 'time_end']
+        fields = ['course_id', 'Semester', 'lecturer', 'capacity', 'day', 'time_start', 'time_end', 'course_group']
 
 
 class Course_groupSerializer(serializers.ModelSerializer):

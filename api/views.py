@@ -1,5 +1,7 @@
+import json
+
 from django.shortcuts import render
-from datetime import timedelta
+from datetime import timedelta, datetime, date
 from rest_framework import viewsets, status
 from django.utils import timezone
 from rest_framework.authentication import TokenAuthentication
@@ -50,7 +52,7 @@ class Course_groupViewSet(viewsets.ModelViewSet):
                 .filter(office=student_office)
             default_ranking = []
             for course in courses:
-                rank = {"name": course.name, "score": 50}
+                rank = {"name": course.name, "score": 45}
                 default_ranking.append(rank)
             serializer = RankingMiniSerializer(default_ranking, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -92,17 +94,73 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_semester_a(self, request):
         user = request.user
         student_office = Student.objects.get(user=user).office
-        courses = Course.objects.filter(Semester="א").filter(course_group__office=student_office)
+        courses = Course.objects.filter(Semester="א").filter(course_group__office=student_office).filter(course_group__is_elective=True)
+        courses_semester_a = [[[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []]]
         serializer = CourseSerializer(courses, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        for course in serializer.data:
+            time_start = datetime.strptime(course['time_start'], '%H:%M:%S').time()
+            time_end = datetime.strptime(course['time_end'], '%H:%M:%S').time()
+            duration = str(datetime.combine(date.today(), time_end) - datetime.combine(date.today(), time_start))
+            course['duration'] = duration[0]
+            for i in range(14):
+                start_hour = i+8
+                start_table = '0'+str(start_hour)+':00'
+                if start_hour > 9:
+                    start_table = str(start_hour)+':00'
+                if time_start == datetime.strptime(start_table, '%H:%M').time():
+                    if course['day'] == 'א':
+                        courses_semester_a[i][5].append(course)
+                    if course['day'] == 'ב':
+                        courses_semester_a[i][4].append(course)
+                    if course['day'] == 'ג':
+                        courses_semester_a[i][3].append(course)
+                    if course['day'] == 'ד':
+                        courses_semester_a[i][2].append(course)
+                    if course['day'] == 'ה':
+                        courses_semester_a[i][1].append(course)
+                    if course['day'] == 'ו':
+                        courses_semester_a[i][0].append(course)
+        return Response(courses_semester_a, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
     def get_semester_b(self, request):
         user = request.user
         student_office = Student.objects.get(user=user).office
-        courses = Course.objects.filter(Semester="ב").filter(course_group__office=student_office)
+        courses = Course.objects.filter(Semester="ב").filter(course_group__office=student_office).filter(course_group__is_elective=True)
+        courses_semester_a = [[[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []]]
         serializer = CourseSerializer(courses, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        for course in serializer.data:
+            time_start = datetime.strptime(course['time_start'], '%H:%M:%S').time()
+            time_end = datetime.strptime(course['time_end'], '%H:%M:%S').time()
+            duration = str(datetime.combine(date.today(), time_end) - datetime.combine(date.today(), time_start))
+            course['duration'] = duration[0]
+            for i in range(14):
+                start_hour = i + 8
+                start_table = '0' + str(start_hour) + ':00'
+                if start_hour > 9:
+                    start_table = str(start_hour) + ':00'
+                if time_start == datetime.strptime(start_table, '%H:%M').time():
+                    if course['day'] == 'א':
+                        courses_semester_a[i][5].append(course)
+                    if course['day'] == 'ב':
+                        courses_semester_a[i][4].append(course)
+                    if course['day'] == 'ג':
+                        courses_semester_a[i][3].append(course)
+                    if course['day'] == 'ד':
+                        courses_semester_a[i][2].append(course)
+                    if course['day'] == 'ה':
+                        courses_semester_a[i][1].append(course)
+                    if course['day'] == 'ו':
+                        courses_semester_a[i][0].append(course)
+        return Response(courses_semester_a, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
     def get_semester_s(self, request):
@@ -158,6 +216,18 @@ class OfficeViewSet(viewsets.ModelViewSet):
     serializer_class = OfficeSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
+
+    @action(detail=False, methods=['GET'])
+    def algo(self, request):
+        user = request.user
+        office = Office.objects.get(user=user)
+        student_set = Student.objects.filter(office=office)
+        course_set = Course.objects.filter(course_group__office=office)
+        serializer = StudentSerializer(student_set, many=True)
+        print(serializer.data)
+        print(student_set.values())
+        print(list(course_set))
+        return Response("OK", status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
     def get_time(self, request):
