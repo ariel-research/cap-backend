@@ -1,5 +1,6 @@
 import json
 
+from django.db import transaction
 from django.shortcuts import render
 from datetime import timedelta, datetime, date
 from rest_framework import viewsets, status
@@ -197,20 +198,26 @@ class StudentViewSet(viewsets.ModelViewSet):
         user = request.user
         office = Office.objects.get(user=user)
         # Read the JSON
-        titles = request.data['students']
+        students_string = request.data['students']
+        try:
+            students = json.loads(students_string)
+        except json.decoder.JSONDecodeError:
+            return Response('The file is invalid', status=status.HTTP_200_OK)
         # Create a Django model object for each object in the JSON
-        for student in titles['students']:
-            student_user = User.objects.create_user(username=student['name'], password=student['password'],
-                                                    email=student['email'])
-            Token.objects.create(user=student_user)
-            student_obj = Student.objects.create(user=student_user, student_id=student['id'],
-                                                 amount_elective=student['amount_elective'], office=office)
-            student_obj.save()
-            for course in student['courses']:
-                cur = Course.objects.get(course_id=course)
-                student_obj.courses.add(cur)
+        try:
+            with transaction.atomic():
+                for student in students:
 
-        return Response('objects of student  created', status=status.HTTP_200_OK)
+                    student_user = User.objects.create_user(student['name'], student['email'], student['password'])
+                    Token.objects.create(user=student_user)
+                    student_obj = Student.objects.create(user=student_user, student_id=student['id'],
+                                                         amount_elective=student['amount_elective'], office=office)
+                    for course in student['courses']:
+                        cur = Course.objects.get(course_id=course)
+                        student_obj.courses.add(cur)
+        except KeyError as e:
+            return Response("KeyError" + str(e), status=status.HTTP_200_OK)
+        return Response('Students created', status=status.HTTP_200_OK)
 
 
 class OfficeViewSet(viewsets.ModelViewSet):
@@ -312,5 +319,4 @@ class ResultViewSet(viewsets.ModelViewSet):
         for result in serializer.data:
             courses.append(Course.objects.get(id=result['course']))
         serializer = CourseSerializer(courses, many=True)
-        print(serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
