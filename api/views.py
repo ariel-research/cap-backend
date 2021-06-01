@@ -1,5 +1,6 @@
 import json
 
+import pytz
 from django.db import transaction
 from django.shortcuts import render
 from datetime import timedelta, datetime, date
@@ -82,14 +83,36 @@ class CourseViewSet(viewsets.ModelViewSet):
         user = request.user
         office = Office.objects.get(user=user)
         # Read the JSON
-        titles = request.data['courses']
+        courses_string = request.data['courses']
+        try:
+            courses = json.loads(courses_string)
+        except json.decoder.JSONDecodeError as e:
+            return Response(str(e), status=status.HTTP_200_OK)
         # Create a Django model object for each object in the JSON
-        for course in titles['courses']:
-            course_group = Course_group.objects.get(name=course['name'])
-            Course.objects.create(course_id=course['id'], Semester=course['semester'], lecturer=course['lecturer'],
-                                  day=course['day'], capacity=course['capacity'], time_start=course['time_start'],
-                                  time_end=course['time_end'], course_group=course_group)
-        return Response('objects of courses created', status=status.HTTP_200_OK)
+        try:
+            with transaction.atomic():
+                for course in courses:
+                    print(course['start_time'])
+                    try:
+                        course_group = Course_group.objects.get(name=course['name'])
+                        Course.objects.create(course_id=course['id'], Semester=course['semester'],
+                                              lecturer=course['lecturer'],
+                                              day=course['day'], capacity=course['capacity'],
+                                              time_start=course['start_time'],
+                                              time_end=course['end_time'], course_group=course_group)
+                    except Course_group.DoesNotExist:
+                        course_group = Course_group.objects.create(name=course['name'],
+                                                                   is_elective=course['is_elective'], office=office)
+                        Course.objects.create(course_id=course['id'], Semester=course['semester'],
+                                              lecturer=course['lecturer'],
+                                              day=course['day'], capacity=course['capacity'],
+                                              time_start=course['start_time'],
+                                              time_end=course['end_time'], course_group=course_group)
+                return Response("הקורסים נוצרו", status=status.HTTP_200_OK)
+
+
+        except KeyError as e:
+            return Response("KeyError" + str(e), status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
     def get_semester_a(self, request):
@@ -263,6 +286,20 @@ class OfficeViewSet(viewsets.ModelViewSet):
         time = 'הדירוג ייסגר ב: ' + timestamp_str
         response = {'message': time, 'value': 1}
         return Response(response, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['POST'])
+    def set_date(self, request):
+        user = request.user
+        start_date = request.data['StartDate'].split('-')
+        end_date = request.data['EndDate'].split('-')
+        start_time = request.data['StartTime'].split(':')
+        end_time = request.data['EndTime'].split(':')
+        start_datetime = datetime(int(start_date[0]), int(start_date[1]), int(start_date[2]), int(start_time[0]),
+                                  int(start_time[1]), 0, tzinfo=pytz.UTC) - timedelta(hours=3)
+        end_datetime = datetime(int(end_date[0]), int(end_date[1]), int(end_date[2]), int(end_time[0]),
+                                int(end_time[1]), 0, tzinfo=pytz.UTC) - timedelta(hours=3)
+        Office.objects.filter(user=user).update(start_time=start_datetime, end_time=end_datetime)
+        return Response("התאריכים התעדכנו", status=status.HTTP_200_OK)
 
 
 class RankingViewSet(viewsets.ModelViewSet):
