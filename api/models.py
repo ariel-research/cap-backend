@@ -50,7 +50,7 @@ class Student(models.Model):
     courses = models.ManyToManyField(Course)
 
     def __str__(self):
-        return "%s's profile" % self.user
+        return "%s's profile" % str(self.student_id)
 
 
 class Ranking(models.Model):

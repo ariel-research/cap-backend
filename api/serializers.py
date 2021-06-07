@@ -58,6 +58,8 @@ class OfficeSerializer(serializers.ModelSerializer):
 
 
 class RankingSerializer(serializers.ModelSerializer):
+    student = serializers.StringRelatedField()
+
     class Meta:
         model = Ranking
         fields = ['id', 'rank', 'student', 'course_group']

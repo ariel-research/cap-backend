@@ -15,7 +15,7 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from .serializers import CourseSerializer, Course_groupSerializer, Course_groupMiniSerializer, StudentSerializer, \
     RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer
-
+from api.SP_algorithm.main import main
 
 # take second element for sort
 def take_score(elem):
@@ -254,11 +254,26 @@ class OfficeViewSet(viewsets.ModelViewSet):
         user = request.user
         office = Office.objects.get(user=user)
         student_set = Student.objects.filter(office=office)
-        course_set = Course.objects.filter(course_group__office=office)
-        serializer = StudentSerializer(student_set, many=True)
-        print(serializer.data)
-        print(student_set.values())
-        print(list(course_set))
+        student_serializer = StudentSerializer(student_set, many=True)
+        course_set = Course_group.objects.filter(office=office)
+        course_serializer = Course_groupSerializer(course_set, many=True)
+
+        # We create a default ranking for students that didn't ranked
+        '''
+        course_set_tmp = Course_group.objects.filter(office=office, is_elective=True)
+        course_serializer_tmp = Course_groupSerializer(course_set_tmp, many=True)
+        default_rank = int(1000 / len(course_serializer_tmp.data))
+        for index in student_serializer.data:
+            s = Student.objects.get(student_id=index['student_id'])
+            count_ranking = Ranking.objects.filter(student=s)
+            if len(count_ranking) == 0:
+                for co in course_serializer_tmp.data:
+                    cg = Course_group.objects.get(name=co['name'])
+                    Ranking.objects.create(course_group=cg, student=s, rank=default_rank)
+        '''
+        ranking_set = Ranking.objects.filter(student__office=office)
+        ranking_serializer = RankingSerializer(ranking_set, many=True)
+        main(student_serializer.data, course_serializer.data, ranking_serializer.data)
         return Response("OK", status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
