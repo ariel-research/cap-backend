@@ -62,12 +62,20 @@ class RankingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ranking
-        fields = ['id', 'rank', 'student', 'course_group']
+        fields = ['id', 'rank', 'student', 'course']
 
 
 class RankingMiniSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=70)
     score = serializers.IntegerField()
+    lecturer = serializers.CharField(max_length=70)
+    day = serializers.CharField(max_length=70)
+    semester = serializers.CharField(max_length=70)
+    time_start = serializers.CharField(max_length=70)
+    time_end = serializers.CharField(max_length=70)
+    id = serializers.CharField(max_length=70)
+
+
 
 
 class ResultSerializer(serializers.ModelSerializer):

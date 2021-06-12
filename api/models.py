@@ -54,16 +54,16 @@ class Student(models.Model):
 
 
 class Ranking(models.Model):
-    course_group = models.ForeignKey(Course_group, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     rank = models.IntegerField()
 
     class Meta:
-        unique_together = (('course_group', 'student'),)
-        index_together = (('course_group', 'student'),)
+        unique_together = (('course', 'student'),)
+        index_together = (('course', 'student'),)
 
     def __str__(self):
-        return '%d %s' % (self.student.student_id, self.course_group.name)
+        return '%d %s' % (self.student.student_id, self.course.course_group.name)
 
 
 class Result(models.Model):

@@ -1,4 +1,5 @@
 import json
+import time
 
 import pytz
 from django.db import transaction
@@ -16,6 +17,7 @@ from rest_framework.authtoken.models import Token
 from .serializers import CourseSerializer, Course_groupSerializer, Course_groupMiniSerializer, StudentSerializer, \
     RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer
 from api.SP_algorithm.main import main
+
 
 # take second element for sort
 def take_score(elem):
@@ -47,21 +49,25 @@ class Course_groupViewSet(viewsets.ModelViewSet):
         user = request.user
         student = Student.objects.get(user=user)
         student_office = Student.objects.get(user=user).office
-        ranking = Ranking.objects.filter(student=student).filter(course_group__is_elective=True) \
-            .filter(course_group__office=student_office).order_by('rank')
+        ranking = Ranking.objects.filter(student=student).filter(course__course_group__is_elective=True) \
+            .filter(course__course_group__office=student_office).order_by('rank')
         if len(ranking) == 0:  # the user not rank his courses
-            courses = Course_group.objects.filter(is_elective=True) \
-                .filter(office=student_office)
+            courses = Course.objects.filter(course_group__is_elective=True) \
+                .filter(course_group__office=student_office)
             default_ranking = []
             for course in courses:
-                rank = {"name": course.name, "score": 45}
+                rank = {"name": course.course_group.name, "lecturer": course.lecturer, "semester": course.Semester,
+                        "day": course.day, "time_start": course.time_start, "time_end": course.time_end, "score": 30,
+                        "id": course.course_id}
                 default_ranking.append(rank)
             serializer = RankingMiniSerializer(default_ranking, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:  # the user rank his courses, show his last rank
             user_ranking = []
             for rank in ranking:
-                rank = {"name": rank.course_group.name, "score": rank.rank}
+                rank = {"name": rank.course.course_group.name, "lecturer": rank.course.lecturer,
+                        "semester": rank.course.Semester, "day": rank.course.day, "time_start": rank.course.time_start,
+                        "time_end": rank.course.time_end, "score": rank.rank, "id": rank.course.course_id}
                 user_ranking.append(rank)
             user_ranking.sort(key=take_score, reverse=True)
             serializer = RankingMiniSerializer(user_ranking, many=True)
@@ -259,7 +265,7 @@ class OfficeViewSet(viewsets.ModelViewSet):
         course_serializer = Course_groupSerializer(course_set, many=True)
 
         # We create a default ranking for students that didn't ranked
-        '''
+
         course_set_tmp = Course_group.objects.filter(office=office, is_elective=True)
         course_serializer_tmp = Course_groupSerializer(course_set_tmp, many=True)
         default_rank = int(1000 / len(course_serializer_tmp.data))
@@ -270,7 +276,7 @@ class OfficeViewSet(viewsets.ModelViewSet):
                 for co in course_serializer_tmp.data:
                     cg = Course_group.objects.get(name=co['name'])
                     Ranking.objects.create(course_group=cg, student=s, rank=default_rank)
-        '''
+
         ranking_set = Ranking.objects.filter(student__office=office)
         ranking_serializer = RankingSerializer(ranking_set, many=True)
         main(student_serializer.data, course_serializer.data, ranking_serializer.data)
@@ -335,16 +341,15 @@ class RankingViewSet(viewsets.ModelViewSet):
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
         if len(is_rated) == 0:  # the user not rank his courses (create)
             for movie_rank in ranking:
-                course = Course_group.objects.get(name=movie_rank['name'])
-                Ranking.objects.create(course_group=course, student=student, rank=movie_rank['score'])
+                course = Course.objects.get(course_id=movie_rank['id'])
+                Ranking.objects.create(course=course, student=student, rank=movie_rank['score'])
             return Response('Ranking created', status=status.HTTP_200_OK)
         else:  # the user rank his courses (update)
             for movie_rank in ranking:
-                last_rank = Ranking.objects.get(course_group__name=movie_rank['name'], student=student)
-                if last_rank.rank != movie_rank['score']:
-                    last_rank.rank = movie_rank['score']
-                    last_rank.save()
+                course = Course.objects.get(course_id=movie_rank['id'])
+                Ranking.objects.filter(course=course, student=student).update(rank=movie_rank['score'])
             return Response('Ranking updated', status=status.HTTP_200_OK)
+        return Response('ok', status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
         response = {'message': 'לא ניתן לעדכן דירוג באופן זה'}
