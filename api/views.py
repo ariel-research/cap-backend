@@ -123,16 +123,28 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'])
     def get_semester_a(self, request):
         user = request.user
+        student = Student.objects.get(user=user)
+        student_serializer = StudentSerializer(student, many=False)
         student_office = Student.objects.get(user=user).office
         courses = Course.objects.filter(Semester="א").filter(course_group__office=student_office).filter(
             course_group__is_elective=True)
+        serializer = CourseSerializer(courses, many=True)
+        mandatory_courses = []
+        for course in student_serializer.data['courses']:
+            if course['Semester'] == 'א':
+                course['mandatory'] = True
+                mandatory_courses.append(course)
+        for course in serializer.data:
+            course['mandatory'] = False
+        temp = list(serializer.data) + list(mandatory_courses)
+        serializer = temp
         courses_semester_a = [[[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []]]
-        serializer = CourseSerializer(courses, many=True)
-        for course in serializer.data:
+
+        for course in serializer:
             time_start = datetime.strptime(course['time_start'], '%H:%M:%S').time()
             time_end = datetime.strptime(course['time_end'], '%H:%M:%S').time()
             duration = str(datetime.combine(date.today(), time_end) - datetime.combine(date.today(), time_start))
@@ -160,16 +172,27 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'])
     def get_semester_b(self, request):
         user = request.user
+        student = Student.objects.get(user=user)
+        student_serializer = StudentSerializer(student, many=False)
         student_office = Student.objects.get(user=user).office
         courses = Course.objects.filter(Semester="ב").filter(course_group__office=student_office).filter(
             course_group__is_elective=True)
+        serializer = CourseSerializer(courses, many=True)
+        mandatory_courses = []
+        for course in student_serializer.data['courses']:
+            if course['Semester'] == 'ב':
+                course['mandatory'] = True
+                mandatory_courses.append(course)
+        for course in serializer.data:
+            course['mandatory'] = False
+        temp = list(serializer.data) + list(mandatory_courses)
+        serializer = temp
         courses_semester_a = [[[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []]]
-        serializer = CourseSerializer(courses, many=True)
-        for course in serializer.data:
+        for course in serializer:
             time_start = datetime.strptime(course['time_start'], '%H:%M:%S').time()
             time_end = datetime.strptime(course['time_end'], '%H:%M:%S').time()
             duration = str(datetime.combine(date.today(), time_end) - datetime.combine(date.today(), time_start))
@@ -266,16 +289,17 @@ class OfficeViewSet(viewsets.ModelViewSet):
 
         # We create a default ranking for students that didn't ranked
 
-        course_set_tmp = Course_group.objects.filter(office=office, is_elective=True)
-        course_serializer_tmp = Course_groupSerializer(course_set_tmp, many=True)
+        course_set_tmp = Course.objects.filter(course_group__office=office, course_group__is_elective=True)
+        course_serializer_tmp = CourseSerializer(course_set_tmp, many=True)
         default_rank = int(1000 / len(course_serializer_tmp.data))
-        for index in student_serializer.data:
-            s = Student.objects.get(student_id=index['student_id'])
-            count_ranking = Ranking.objects.filter(student=s)
-            if len(count_ranking) == 0:
-                for co in course_serializer_tmp.data:
-                    cg = Course_group.objects.get(name=co['name'])
-                    Ranking.objects.create(course_group=cg, student=s, rank=default_rank)
+
+        # for index in student_serializer.data:
+        #     s = Student.objects.get(student_id=index['student_id'])
+        #     count_ranking = Ranking.objects.filter(student=s)
+        #     if len(count_ranking) == 0:
+        #         for co in course_serializer_tmp.data:
+        #             cg = Course.objects.get(course_id=co['course_id'])
+        #             Ranking.objects.create(course=cg, student=s, rank=default_rank)
 
         ranking_set = Ranking.objects.filter(student__office=office)
         ranking_serializer = RankingSerializer(ranking_set, many=True)

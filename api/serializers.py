@@ -59,6 +59,7 @@ class OfficeSerializer(serializers.ModelSerializer):
 
 class RankingSerializer(serializers.ModelSerializer):
     student = serializers.StringRelatedField()
+    course = serializers.CharField(max_length=70)
 
     class Meta:
         model = Ranking

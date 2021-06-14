@@ -38,7 +38,7 @@ class Course(models.Model):
     course_group = models.ForeignKey(Course_group, on_delete=models.CASCADE, related_name="courses")
 
     def __str__(self):
-        return self.course_group.name + ", מספר קורס: " + str(self.course_id)
+        return str(self.course_id)
 
 
 class Student(models.Model):
@@ -76,4 +76,4 @@ class Result(models.Model):
         index_together = (('course', 'student'),)
 
     def __str__(self):
-        return '%d מספר קורס: %d %s' % (self.student.student_id, self.course.id, self.course.course_group.name)
+        return '%d מספר קורס: %s %s' % (self.student.student_id, self.course.course_id, self.course.course_group.name)
