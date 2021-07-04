@@ -1,3 +1,4 @@
+import collections
 import json
 import time
 
@@ -278,6 +279,7 @@ class OfficeViewSet(viewsets.ModelViewSet):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
+
     @action(detail=False, methods=['GET'])
     def algo(self, request):
         user = request.user
@@ -293,17 +295,23 @@ class OfficeViewSet(viewsets.ModelViewSet):
         course_serializer_tmp = CourseSerializer(course_set_tmp, many=True)
         default_rank = int(1000 / len(course_serializer_tmp.data))
 
-        # for index in student_serializer.data:
-        #     s = Student.objects.get(student_id=index['student_id'])
-        #     count_ranking = Ranking.objects.filter(student=s)
-        #     if len(count_ranking) == 0:
-        #         for co in course_serializer_tmp.data:
-        #             cg = Course.objects.get(course_id=co['course_id'])
-        #             Ranking.objects.create(course=cg, student=s, rank=default_rank)
+        for index in student_serializer.data:
+             s = Student.objects.get(student_id=index['student_id'])
+             count_ranking = Ranking.objects.filter(student=s)
+             if len(count_ranking) == 0:
+                 for co in course_serializer_tmp.data:
+                     cg = Course.objects.get(course_id=co['course_id'])
+                     Ranking.objects.create(course=cg, student=s, rank=default_rank)
 
         ranking_set = Ranking.objects.filter(student__office=office)
         ranking_serializer = RankingSerializer(ranking_set, many=True)
-        main(student_serializer.data, course_serializer.data, ranking_serializer.data)
+        students, courses = main(student_serializer.data, course_serializer.data, ranking_serializer.data)
+        for student in students:
+            for course in courses:
+                if student.if_student_enroll(course.get_name()):
+                    s = Student.objects.get(student_id=student.get_id())
+                    c = Course.objects.get(course_id=course.get_id())
+                    Result.objects.create(course=c, student=s, selected=True)
         return Response("OK", status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
@@ -331,6 +339,18 @@ class OfficeViewSet(viewsets.ModelViewSet):
         time = 'הדירוג ייסגר ב: ' + timestamp_str
         response = {'message': time, 'value': 1}
         return Response(response, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['GET'])
+    def close_ranking(self, request):
+        tz_now = timezone.localtime(timezone.now())
+        user = request.user
+        office = Office.objects.get(user=user)
+        end_time = office.end_time + timedelta(hours=3)
+        # if the ranking ended
+        if end_time < tz_now:
+            return Response(True, status=status.HTTP_200_OK)
+        return Response(False, status=status.HTTP_200_OK)
+
 
     @action(detail=False, methods=['POST'])
     def set_date(self, request):
@@ -400,4 +420,11 @@ class ResultViewSet(viewsets.ModelViewSet):
         for result in serializer.data:
             courses.append(Course.objects.get(id=result['course']))
         serializer = CourseSerializer(courses, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # find ranking for the course
+        ranking = Ranking.objects.filter(student=student).filter(course__course_group__is_elective=True).order_by('-rank')
+        for course in serializer.data:
+            for index, value in enumerate(ranking):
+                if str(value.course.course_id) == str(course['course_id']):
+                    course['rank'] = index+1
+        newlist = sorted(serializer.data, key=lambda k: k['rank'])
+        return Response(newlist, status=status.HTTP_200_OK)
