@@ -4,11 +4,12 @@ from api.SP_algorithm.course import OOPCourse
 from api.SP_algorithm.course_group import Course_group
 from api.SP_algorithm.student import OOPStudent
 from collections import OrderedDict
+
 logging.basicConfig(level=logging.DEBUG)
 
 
-
-def check_overlap(student_object, course_object): # Check if there is an overlap course to the course we tried to enroll
+def check_overlap(student_object,
+                  course_object):  # Check if there is an overlap course to the course we tried to enroll
     """
       >>> student = OOPStudent(1, 5, 1, {'aa':0, 'ab': 1, 'ac': 0, 'ad': 0, 'ae': 1}, {'aa':0, 'ab': 20, 'ac': 30, 'ad': 40, 'ae': 0})
       >>> course = OOPCourse(1, 2, 'aa', 5, '12:00:00', '15:00:00', 'a', 'Monday', 'l', 1, True)
@@ -50,7 +51,9 @@ def check_overlap(student_object, course_object): # Check if there is an overlap
                     if not output:
                         output = True
                         break
-
+        if output:
+            logging.info("Course: %s , overlap with: %s, for student: %s, reason: overlap algorithm",
+                         course_object.get_name(), course_name.get_name(), student_object.get_id())
         return output
 
 
@@ -65,7 +68,7 @@ def SP_calibration(student_list, elective_course_list):
         for course in elective_course_list:
             if course.get_capacity() == 0 and pre[0][0] == course.get_name():
                 logging.info("student ID: %s, preferred course : %s , bid amount: %d, reason: capacity calibration"
-                             ,student.get_id(), pre[0][0], pre[0][1])
+                             , student.get_id(), pre[0][0], pre[0][1])
 
                 student.delete_current_preference()
                 student.add_gap(pre[0][1])
@@ -88,7 +91,7 @@ def SP_Algorithm(student_list, elective_course_list, round):
         student_need_to_enroll = list(filter(lambda x: x.get_number_of_enrollments() < round, student_need_to_enroll))
         student_need_to_enroll = list(filter(lambda x: x.get_current_highest_bid() != 0, student_need_to_enroll))
         student_need_to_enroll = sorted(student_need_to_enroll, key=lambda x:
-                                        [x.get_current_highest_bid(), x.current_highest_ordinal()], reverse=True)
+        [x.get_current_highest_bid(), x.current_highest_ordinal()], reverse=True)
 
         if len(student_need_to_enroll) > 0 and not first_iteration:
             logging.info("Enrolled students or students with no preference has been filtered")
@@ -96,7 +99,7 @@ def SP_Algorithm(student_list, elective_course_list, round):
         first_iteration = False
         need_to_break = False
         for student in student_need_to_enroll:
-            change_try_to_enroll, try_to_enroll= student.get_next_preference(True)
+            change_try_to_enroll, try_to_enroll = student.get_next_preference(True)
             tmp_preference = list(change_try_to_enroll.items())
             bid_data = tmp_preference[0]
             original_bid = list(try_to_enroll.values())
@@ -106,21 +109,20 @@ def SP_Algorithm(student_list, elective_course_list, round):
                              student.get_id(), bid_data[0], bid_data[1], original_bid[0])
 
             else:
-                logging.info("Try to enroll: student ID: %s, preferred course: %s , bid amount: %d." ,
+                logging.info("Try to enroll: student ID: %s, preferred course: %s , bid amount: %d.",
                              student.get_id(), bid_data[0], bid_data[1])
 
             for course in elective_course_list:
                 if course.get_name() == bid_data[0]:
-                    if course.get_capacity()>0:
+                    if course.get_capacity() > 0:
                         if not check_overlap(student, course):
                             logging.info("Student: %s, enroll to course: %s"
-                                         ,student.get_id() ,bid_data[0])
-                            course.student_enrollment(student.get_id(),student)
+                                         , student.get_id(), bid_data[0])
+                            course.student_enrollment(student.get_id(), student)
                             student.got_enrolled(course.get_name())
 
                         else:
-                            logging.info("Course: %s , overlap with: %s, for student: %s, reason: overlap algorithm",
-                                         course_object.get_name(), course_name.get_name(), student_object.get_id())
+
                             student.delete_current_preference()
                             student.add_gap(bid_data[1])
                             need_to_break = True
@@ -228,7 +230,6 @@ OrderedDict([('id', 28), ('name', 'מבוא לקריפטוגרפיה'), ('is_ele
     1
    """
 
-
     group_course_list = []
     course_list_elective_output = []
     course_list_mandatory_output = []
@@ -246,7 +247,7 @@ OrderedDict([('id', 28), ('name', 'מבוא לקריפטוגרפיה'), ('is_ele
         elect = dic['is_elective']
 
         counter = 1
-        for dic2 in dic['courses']: # dic2 is representing the courses of group_course (= dic1)
+        for dic2 in dic['courses']:  # dic2 is representing the courses of group_course (= dic1)
             id = int(dic2['course_id'])
             semester = dic2['Semester']
             lecturer = dic2['lecturer']
@@ -377,7 +378,7 @@ def order_student_data(raw_student_list, raw_rank_list, elective_course_list, co
                     deepcopy_indexed_enrollment[course_list[i].get_name()] = 1
 
         for rank_dic in raw_rank_list:  # Update the ranking of elective courses for all student in current office
-            student_id = int(rank_dic['student'][0:9]) # Taking the student id for checking if is the same student
+            student_id = int(rank_dic['student'][0:9])  # Taking the student id for checking if is the same student
             course_id = int(rank_dic['course'])
             rank = int(rank_dic['rank'])
 
@@ -386,9 +387,10 @@ def order_student_data(raw_student_list, raw_rank_list, elective_course_list, co
                     if course.get_id() == course_id:
                         deepcopy_cardinal_order[course.get_name()] = rank
 
-        logging.info("Create a new student number %d." ,counter)
+        logging.info("Create a new student number %d.", counter)
 
-        s = OOPStudent(id, need_to_enroll, office, deepcopy(deepcopy_indexed_enrollment), deepcopy(deepcopy_cardinal_order))
+        s = OOPStudent(id, need_to_enroll, office, deepcopy(deepcopy_indexed_enrollment),
+                       deepcopy(deepcopy_cardinal_order))
         student_list.append(s)
         counter += 1
 
@@ -415,7 +417,6 @@ def main(raw_student_list, raw_course_list, raw_rank_list):
     logging.info("Activate the algorithm")
     algorithm(student_list, course_elect_list)
 
-
     boolean_utility = 0
     cardinal_utility = 0
     ordinal_utility = 0
@@ -431,7 +432,6 @@ def main(raw_student_list, raw_course_list, raw_rank_list):
         if max_cardinal < i.get_cardinal_utility():
             max_cardinal = i.get_cardinal_utility()
 
-
         if min_cardinal == 0 and i.get_cardinal_utility() > 200:
             to_count = False
             min_cardinal = i.get_cardinal_utility()
@@ -439,26 +439,25 @@ def main(raw_student_list, raw_course_list, raw_rank_list):
         elif min_cardinal > i.get_cardinal_utility() > 200:
             min_cardinal = i.get_cardinal_utility()
 
-
         ordinal_utility += i.get_ordinal_utility()
 
         if max_ordinal < i.get_ordinal_utility():
             max_ordinal = i.get_ordinal_utility()
 
         if (min_ordinal > i.get_ordinal_utility() or min_ordinal == 0) and to_count:
-             min_ordinal = i.get_ordinal_utility()
-
+            min_ordinal = i.get_ordinal_utility()
 
     logging.info("Boolean utility is: %d", boolean_utility)
     logging.info("Ordinal utility is: %d", ordinal_utility)
     logging.info("Cardinal utility is: %d", cardinal_utility)
-    logging.info("Cardinal range is: %d, When the max is: %d", max_cardinal-min_cardinal, max_cardinal)
-    logging.info("Ordinal range is: %d, When the max is: %d", max_ordinal-min_ordinal, max_ordinal)
+    logging.info("Cardinal range is: %d, When the max is: %d", max_cardinal - min_cardinal, max_cardinal)
+    logging.info("Ordinal range is: %d, When the max is: %d", max_ordinal - min_ordinal, max_ordinal)
 
     return student_list, course_elect_list
 
 
 if __name__ == "__main__":
     import doctest
+
     logging.basicConfig(level=logging.DEBUG)
     doctest.testmod()
