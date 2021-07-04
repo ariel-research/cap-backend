@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def check_overlap(student_object,
-                  course_object):  # Check if there is an overlap course to the course we tried to enroll
+                  course_object, cal=True):  # Check if there is an overlap course to the course we tried to enroll
     """
       >>> student = OOPStudent(1, 5, 1, {'aa':0, 'ab': 1, 'ac': 0, 'ad': 0, 'ae': 1}, {'aa':0, 'ab': 20, 'ac': 30, 'ad': 40, 'ae': 0})
       >>> course = OOPCourse(1, 2, 'aa', 5, '12:00:00', '15:00:00', 'a', 'Monday', 'l', 1, True)
@@ -51,7 +51,7 @@ def check_overlap(student_object,
                     if not output:
                         output = True
                         break
-        if output:
+        if output and cal:
             logging.info("Course: %s , overlap with: %s, for student: %s, reason: overlap algorithm",
                          course_object.get_name(), course_name.get_name(), student_object.get_id())
         return output
@@ -74,7 +74,7 @@ def SP_calibration(student_list, elective_course_list):
                 student.add_gap(pre[0][1])
                 course.enrolled_student_receive(pre[0][1])
 
-            elif check_overlap(student, course) and pre[0][0] == course.get_name():
+            elif check_overlap(student, course, False) and pre[0][0] == course.get_name():
                 logging.info("student ID: %s, preferred course : %s , bid amount: %d, reason: overlap calibration"
                              , student.get_id(), pre[0][0], pre[0][1])
                 student.delete_current_preference()
