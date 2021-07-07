@@ -1,10 +1,7 @@
 import collections
 import json
-import time
-
 import pytz
 from django.db import transaction
-from django.shortcuts import render
 from datetime import timedelta, datetime, date
 from rest_framework import viewsets, status
 from django.utils import timezone
@@ -15,8 +12,8 @@ from rest_framework.response import Response
 from .models import Course, Course_group, Student, Ranking, Result, Office
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
-from .serializers import CourseSerializer, Course_groupSerializer, Course_groupMiniSerializer, StudentSerializer, \
-    RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer
+from .serializers import CourseSerializer, Course_groupSerializer, CourseMiniSerializer, StudentSerializer, \
+    RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer, StudentMiniSerializer
 from api.SP_algorithm.main import main
 
 
@@ -52,6 +49,8 @@ class Course_groupViewSet(viewsets.ModelViewSet):
         student_office = Student.objects.get(user=user).office
         ranking = Ranking.objects.filter(student=student).filter(course__course_group__is_elective=True) \
             .filter(course__course_group__office=student_office).order_by('rank')
+        student_serializer = StudentSerializer(student, many=False)
+        student_courses = student_serializer.data['courses']
         if len(ranking) == 0:  # the user not rank his courses
             courses = Course.objects.filter(course_group__is_elective=True) \
                 .filter(course_group__office=student_office)
@@ -59,17 +58,36 @@ class Course_groupViewSet(viewsets.ModelViewSet):
             for course in courses:
                 rank = {"name": course.course_group.name, "lecturer": course.lecturer, "semester": course.Semester,
                         "day": course.day, "time_start": course.time_start, "time_end": course.time_end, "score": 30,
-                        "id": course.course_id}
+                        "id": course.course_id, 'overlap': False}
+                for mandatory in student_courses:
+                    mandatory_start = datetime.strptime(mandatory['time_start'], '%H:%M:%S').time()
+                    mandatory_end = datetime.strptime(mandatory['time_end'], '%H:%M:%S').time()
+                    if rank["semester"] == mandatory["Semester"] and rank["day"] == mandatory["day"]:
+                        if course.time_start <= mandatory_start < course.time_end:
+                            rank['overlap'] = True
+                        elif course.time_start < mandatory_end <= course.time_end:
+                            rank['overlap'] = True
+                        elif course.time_start == mandatory_start and mandatory_end == course.time_end:
+                            rank['overlap'] = True
                 default_ranking.append(rank)
-            serializer = RankingMiniSerializer(default_ranking, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(default_ranking, status=status.HTTP_200_OK)
         else:  # the user rank his courses, show his last rank
             user_ranking = []
             for rank in ranking:
-                rank = {"name": rank.course.course_group.name, "lecturer": rank.course.lecturer,
+                course_ser = {"name": rank.course.course_group.name, "lecturer": rank.course.lecturer,
                         "semester": rank.course.Semester, "day": rank.course.day, "time_start": rank.course.time_start,
-                        "time_end": rank.course.time_end, "score": rank.rank, "id": rank.course.course_id}
-                user_ranking.append(rank)
+                        "time_end": rank.course.time_end, "score": rank.rank, "id": rank.course.course_id, "overlap":False}
+                for mandatory in student_courses:
+                    mandatory_start = datetime.strptime(mandatory['time_start'], '%H:%M:%S').time()
+                    mandatory_end = datetime.strptime(mandatory['time_end'], '%H:%M:%S').time()
+                    if course_ser["semester"] == mandatory["Semester"] and course_ser["day"] == mandatory["day"]:
+                        if rank.course.time_start <= mandatory_start < rank.course.time_end:
+                            course_ser['overlap'] = True
+                        elif rank.course.time_start < mandatory_end <= rank.course.time_end:
+                            course_ser['overlap'] = True
+                        elif rank.course.time_start == mandatory_start and mandatory_end == rank.course.time_end:
+                            course_ser['overlap'] = True
+                user_ranking.append(course_ser)
             user_ranking.sort(key=take_score, reverse=True)
             serializer = RankingMiniSerializer(user_ranking, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -99,7 +117,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 for course in courses:
-                    print(course['start_time'])
                     try:
                         course_group = Course_group.objects.get(name=course['name'])
                         Course.objects.create(course_id=course['id'], Semester=course['semester'],
@@ -315,29 +332,75 @@ class OfficeViewSet(viewsets.ModelViewSet):
         return Response("OK", status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
+    def my_students(self, request):
+        user = request.user
+        office = Office.objects.get(user=user)
+        student_set = Student.objects.filter(office=office)
+        student_serializer = StudentMiniSerializer(student_set, many=True)
+        string_student = "["
+        for student in student_serializer.data:
+            string_student = string_student + str(student["student_id"]) + ", "
+        string_student = string_student[0: len(string_student)-2]
+        string_student = string_student + "]"
+        return Response(string_student, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['GET'])
+    def my_courses(self, request):
+        user = request.user
+        office = Office.objects.get(user=user)
+        courses = Course.objects.filter(course_group__office=office)
+        courses_serializer = CourseMiniSerializer(courses, many=True)
+        string_course = "["
+        for course in courses_serializer.data:
+            string_course = string_course + str(course["course_id"]) + ", "
+        string_course = string_course[0: len(string_course)-2]
+        string_course = string_course + "]"
+        return Response(string_course, status=status.HTTP_200_OK)
+
+
+    @action(detail=False, methods=['GET'])
     def get_time(self, request):
         tz_now = timezone.localtime(timezone.now())
         user = request.user
         office = Student.objects.get(user=user).office
-        start_time = office.start_time + timedelta(hours=3)
-        end_time = office.end_time + timedelta(hours=3)
+        start_time = office.start_time
+        end_time = office.end_time
         # if the ranking time has not started
-        if start_time >= tz_now:
+        if office.start_time > tz_now + timedelta(hours=3):
             timestamp_str = start_time.strftime(" %d/%m") + " בשעה " + start_time.strftime(" %H:%M ")
             text = 'הדירוג יפתח ב: ' + timestamp_str
             response = {'message': text, 'value': 0}
             return Response(response, status=status.HTTP_200_OK)
         # if the ranking ended
-        if end_time < tz_now:
+        if end_time < tz_now + timedelta(hours=3):
             response = {'message': 'הדירוג נסגר', 'value': 0}
             return Response(response, status=status.HTTP_200_OK)
         # if this is the ranking time
-        current_time = end_time - tz_now
-        # hours = int(((end_time - tz_now).total_seconds() / 60.0 - 180) / 60)
-        # minutes = int(((end_time - tz_now).total_seconds() / 60.0 - 180) % 60)
         timestamp_str = end_time.strftime(" %d/%m") + " בשעה " + end_time.strftime(" %H:%M ")
         time = 'הדירוג ייסגר ב: ' + timestamp_str
         response = {'message': time, 'value': 1}
+        return Response(response, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['GET'])
+    def get_dates(self, request):
+        user = request.user
+        office = Office.objects.get(user=user)
+        start_time = office.start_time
+        end_time = office.end_time
+        year_strftime_start = start_time.strftime("%y")
+        month_strftime_start = start_time.strftime("%m")
+        day_strftime_start = start_time.strftime("%d")
+        hour_strftime_start = start_time.strftime("%H")
+        min_strftime_start = start_time.strftime("%M")
+        year_strftime_end = end_time.strftime("%y")
+        month_strftime_end = end_time.strftime("%m")
+        day_strftime_end = end_time.strftime("%d")
+        hour_strftime_end = end_time.strftime("%H")
+        min_strftime_end = end_time.strftime("%M")
+        response = {'year_start': year_strftime_start, 'month_start': month_strftime_start,
+                    'day_start': day_strftime_start, 'hour_start': hour_strftime_start, 'min_start': min_strftime_start,
+                    'year_end': year_strftime_end, 'month_end': month_strftime_end,
+                    'day_end': day_strftime_end, 'hour_end': hour_strftime_end, 'min_end': min_strftime_end}
         return Response(response, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
@@ -345,9 +408,9 @@ class OfficeViewSet(viewsets.ModelViewSet):
         tz_now = timezone.localtime(timezone.now())
         user = request.user
         office = Office.objects.get(user=user)
-        end_time = office.end_time + timedelta(hours=3)
+        end_time = office.end_time
         # if the ranking ended
-        if end_time < tz_now:
+        if end_time < tz_now + timedelta(hours=3):
             return Response(True, status=status.HTTP_200_OK)
         return Response(False, status=status.HTTP_200_OK)
 
@@ -355,14 +418,16 @@ class OfficeViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'])
     def set_date(self, request):
         user = request.user
-        start_date = request.data['StartDate'].split('-')
-        end_date = request.data['EndDate'].split('-')
-        start_time = request.data['StartTime'].split(':')
-        end_time = request.data['EndTime'].split(':')
-        start_datetime = datetime(int(start_date[0]), int(start_date[1]), int(start_date[2]), int(start_time[0]),
-                                  int(start_time[1]), 0, tzinfo=pytz.UTC) - timedelta(hours=3)
-        end_datetime = datetime(int(end_date[0]), int(end_date[1]), int(end_date[2]), int(end_time[0]),
-                                int(end_time[1]), 0, tzinfo=pytz.UTC) - timedelta(hours=3)
+        start_date = request.data['StartDate'].split('T')
+        day_start = start_date[0].split('-')
+        time_start = start_date[1].split(':')
+        end_date = request.data['EndDate'].split('T')
+        day_end = end_date[0].split('-')
+        time_end = end_date[1].split(':')
+        start_datetime = datetime(int(day_start[0]), int(day_start[1]), int(day_start[2]), int(time_start[0]),
+                                  int(time_start[1]), 0, tzinfo=pytz.UTC)
+        end_datetime = datetime(int(day_end[0]), int(day_end[1]), int(day_end[2]), int(time_end[0]),
+                                int(time_end[1]), 0, tzinfo=pytz.UTC)
         Office.objects.filter(user=user).update(start_time=start_datetime, end_time=end_datetime)
         return Response("התאריכים התעדכנו", status=status.HTTP_200_OK)
 

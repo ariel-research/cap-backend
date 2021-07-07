@@ -21,9 +21,16 @@ class UserSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(serializers.ModelSerializer):
     course_group = serializers.StringRelatedField()
+
     class Meta:
         model = Course
         fields = ['course_id', 'Semester', 'lecturer', 'capacity', 'day', 'time_start', 'time_end', 'course_group']
+
+
+class CourseMiniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = ['course_id']
 
 
 class Course_groupSerializer(serializers.ModelSerializer):
@@ -48,6 +55,10 @@ class StudentSerializer(serializers.ModelSerializer):
         fields = ['student_id', 'user', 'amount_elective', 'office', 'courses']
 
 
+class StudentMiniSerializer(serializers.Serializer):
+    student_id = serializers.IntegerField()
+
+
 class OfficeSerializer(serializers.ModelSerializer):
     students = StudentSerializer(many=True)
     courses = Course_groupSerializer(many=True)
@@ -69,14 +80,13 @@ class RankingSerializer(serializers.ModelSerializer):
 class RankingMiniSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=70)
     score = serializers.IntegerField()
+    overlap = serializers.BooleanField()
     lecturer = serializers.CharField(max_length=70)
     day = serializers.CharField(max_length=70)
     semester = serializers.CharField(max_length=70)
     time_start = serializers.CharField(max_length=70)
     time_end = serializers.CharField(max_length=70)
     id = serializers.CharField(max_length=70)
-
-
 
 
 class ResultSerializer(serializers.ModelSerializer):

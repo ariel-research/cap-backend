@@ -149,7 +149,8 @@ class OOPStudent:
         course_name = cardinal_keys[max_value_index]
         self.changeable_cardinal_order[course_name] = 0
         cardinal_value[max_value_index] = 0
-        return self.cardinal_order[course_name]
+        return self.cardinal_order[course_name] # WATCH OUT Returning the original value when deleting and not changed
+                                                # value
 
     def get_next_preference(self, return_original_or_not):
         """
@@ -185,18 +186,28 @@ class OOPStudent:
         """
         >>> s = OOPStudent(1, 5, 1, {'aa 1': 0, 'ab 1': 0, 'ac 1': 0, 'ad 1': 0, 'ae 1': 0},\
 {'aa 1': 40, 'ab 1': 7, 'ac 1': 30, 'ad 1': 20, 'ae 1': 13})
+        >>> s.delete_current_preference()
+        40
         >>> s.add_gap(0)
         >>> s.get_changeable_cardinal()
         {'aa 1': 0, 'ab 1': 7, 'ac 1': 30, 'ad 1': 20, 'ae 1': 13}
+        >>> s.delete_current_preference()
+        30
         >>> s.add_gap(10)
         >>> s.get_changeable_cardinal()
         {'aa 1': 0, 'ab 1': 7, 'ac 1': 0, 'ad 1': 30, 'ae 1': 13}
+        >>> s.delete_current_preference()
+        20
         >>> s.add_gap(5)
         >>> s.get_changeable_cardinal()
         {'aa 1': 0, 'ab 1': 7, 'ac 1': 0, 'ad 1': 0, 'ae 1': 18}
+        >>> s.delete_current_preference()
+        13
         >>> s.add_gap(25)
         >>> s.get_changeable_cardinal()
         {'aa 1': 0, 'ab 1': 32, 'ac 1': 0, 'ad 1': 0, 'ae 1': 0}
+        >>> s.delete_current_preference()
+        7
         >>> s.add_gap(10)
         >>> s.get_changeable_cardinal()
         {'aa 1': 0, 'ab 1': 0, 'ac 1': 0, 'ad 1': 0, 'ae 1': 0}
@@ -362,4 +373,5 @@ class OOPStudent:
 
 if __name__ == "__main__":
     import doctest
-    doctest.testmod()
+    (failures,tests) = doctest.testmod(report=True)
+    print ("{} failures, {} tests".format(failures,tests))
