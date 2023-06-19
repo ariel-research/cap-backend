@@ -243,6 +243,26 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class RegisterView(viewsets.ModelViewSet):
+    serializer_class = StudentSerializer
+    
+    @action(detail=False, methods=['POST'])
+    def post(self, request):
+        username = request.data.get('username')
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        # Perform validation and create the user
+        if not username or not email or not password:
+            return Response({'error': 'Please fill in all fields'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            # You can also perform additional validation or save other user-related information here
+            return Response({'message': 'Registration successful'})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
