@@ -10,12 +10,24 @@ from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username','email' 'password']
-        extra_kwargs = {'password': {'write_only': True, 'required': True}}
+        fields = ['username','first_name','last_name','email','password']
+        extra_kwargs = {'password2': {'write_only': True, 'required': True}}
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        Token.objects.create(user=user)
+        user = User.objects.create(      
+            username=validated_data['email'],
+            first_name = validated_data['first_name'],
+            last_name = validated_data['last_name'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+        )
+        
+
+        user.is_active = False        
+
+        user.set_password(validated_data['password'])
+        #user.save()
+        #Token.objects.create(user=user)
         return user
 
 
@@ -46,13 +58,13 @@ class Course_groupMiniSerializer(serializers.ModelSerializer):
         model = Course_group
         fields = ['id', 'name']
 
-
 class StudentSerializer(serializers.ModelSerializer):
     courses = CourseSerializer(many=True)
 
     class Meta:
         model = Student
         fields = ['student_id', 'user', 'amount_elective', 'office', 'courses']
+
 
 
 class StudentMiniSerializer(serializers.Serializer):

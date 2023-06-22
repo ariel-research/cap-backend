@@ -2,7 +2,6 @@ from django.db import models
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import User
 
-
 class Office(models.Model):
     office_id = models.CharField(unique=True, max_length=32)
     name = models.CharField(max_length=70, unique=True)
@@ -40,17 +39,18 @@ class Course(models.Model):
     def __str__(self):
         return str(self.course_id)
 
-
+    
 class Student(models.Model):
-    student_id = models.IntegerField(unique=True, validators=[
-        RegexValidator(regex='^.{9}$', message='תעודת הזהות חייבת להיות 9 ספרות', code='nomatch')])
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    amount_elective = models.IntegerField()
+    #student_id = models.IntegerField(unique=True, validators=[
+    #    RegexValidator(regex='^.{9}$', message='תעודת הזהות חייבת להיות 9 ספרות', code='nomatch')])
+    student_id = models.IntegerField(null=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE )
+    amount_elective = models.IntegerField(null=True,)
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="students", default=1)
-    courses = models.ManyToManyField(Course)
+    courses = models.ManyToManyField(Course,null=True,)
 
     def __str__(self):
-        return "%s's profile" % str(self.student_id)
+        return "%s's profile" % str(self.user.email if self.user.email else self.student_id)
 
 
 class Ranking(models.Model):

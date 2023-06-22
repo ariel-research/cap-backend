@@ -15,12 +15,49 @@ from rest_framework.authtoken.models import Token
 from .serializers import CourseSerializer, Course_groupSerializer, CourseMiniSerializer, StudentSerializer, \
     RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer, StudentMiniSerializer
 from api.SP_algorithm.main import main
+from verify_email.email_handler import send_verification_email
+from .forms import RegitrationForm
 
-
+from django.contrib.auth import get_user_model
+from django_email_verification import send_email
 # take second element for sort
 def take_score(elem):
     return elem.get("score")
 
+class RegisterView(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    permission_classes = (AllowAny,)
+    
+    @action(detail=False, methods=['POST'])
+    def post(self, request):
+        username = request.data.get('username')
+        firstname = request.data.get('first_name')
+        lastname = request.data.get('last_name')
+        email = request.data.get('email')
+        password = request.data.get('password1')
+        #userSerializer = UserSerializer(data=request.data)
+        # Perform validation and create the user
+        """ if not firstname or not lastname or not email or not password:
+            return Response({'error': 'Please fill in all fields'}, status=status.HTTP_400_BAD_REQUEST)"""
+        form = RegitrationForm(request.data)
+        if form.is_valid():
+            try:
+                if not User.objects.filter(email = email).exists():
+                    student_user = send_verification_email(request, form )
+                    Token.objects.create(user=student_user)
+                    student_obj = Student.objects.create(user=student_user)
+                    return Response({'message': 'Registration successful'}, status=status.HTTP_201_CREATED)
+                else:
+                    student = User.objects.get(email=email)
+                    if student.is_active:
+                        return Response({'message': 'משתמש/ת רשום'}, status=status.HTTP_201_CREATED)
+                    else:
+                        return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_201_CREATED)
+            except Exception as e:
+        #
+        #user = User.objects.create_user(username=username, email=email, password=password)
+        # You can also perform additional validation or save other user-related information here
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -243,25 +280,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-class RegisterView(viewsets.ModelViewSet):
-    serializer_class = StudentSerializer
-    
-    @action(detail=False, methods=['POST'])
-    def post(self, request):
-        username = request.data.get('username')
-        email = request.data.get('email')
-        password = request.data.get('password')
-        
-        # Perform validation and create the user
-        if not username or not email or not password:
-            return Response({'error': 'Please fill in all fields'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            user = User.objects.create_user(username=username, email=email, password=password)
-            # You can also perform additional validation or save other user-related information here
-            return Response({'message': 'Registration successful'})
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class StudentViewSet(viewsets.ModelViewSet):
