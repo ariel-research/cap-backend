@@ -30,39 +30,103 @@ class RegisterView(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['POST'])
     def post(self, request):
-        username = request.data.get('username')
-        firstname = request.data.get('first_name')
-        lastname = request.data.get('last_name')
         email = request.data.get('email')
-        password = request.data.get('password1')
-        #userSerializer = UserSerializer(data=request.data)
-        # Perform validation and create the user
-        """ if not firstname or not lastname or not email or not password:
-            return Response({'error': 'Please fill in all fields'}, status=status.HTTP_400_BAD_REQUEST)"""
         form = RegitrationForm(request.data)
         if form.is_valid():
+            print("valid form")
             try:
-                if not User.objects.filter(email = email).exists():
-                    student_user = send_verification_email(request, form )
-                    Token.objects.create(user=student_user)
-                    student_obj = Student.objects.create(user=student_user)
-                    return Response({'message': 'Registration successful'}, status=status.HTTP_201_CREATED)
-                else:
-                    student = User.objects.get(email=email)
-                    if student.is_active:
-                        return Response({'message': 'משתמש/ת רשום'}, status=status.HTTP_201_CREATED)
-                    else:
-                        return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_201_CREATED)
+                student_user = send_verification_email(request, form )
+                Token.objects.create(user=student_user)
+                Student.objects.create(user=student_user)
+                return Response({'message': 'Registration successful'}, status=status.HTTP_201_CREATED)                    
             except Exception as e:
-        #
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            if form['username'].errors:
+                student = User.objects.get(email=email)
+                if student.is_active:
+                    print("active")
+                    return Response({'message': 'משתמש/ת רשום'}, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    print("inactive")
+                    return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': str(form.errors)}, status=status.HTTP_400_BAD_REQUEST)
         #user = User.objects.create_user(username=username, email=email, password=password)
         # You can also perform additional validation or save other user-related information here
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (AllowAny,)
+    authentication_classes = (TokenAuthentication,)
+    
+    @action(detail=False, methods=['GET'])
+    def get_user_status(self, request):
+        print(request.query_params.get('username'))
+        try:
+            username= request.query_params.get('username')
+            if not User.objects.filter(username = username).exists():
+                return Response({'message': 'משתמש לא קיים'}, status=status.HTTP_400_BAD_REQUEST)
+            elif self.queryset.get(username= username).is_active:
+                return Response({'message': 'שם משתמש או סיסמא שגויים'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    @action(detail=False, methods=['GET'])
+    def get_user_details(self, request):
+        serializer = UserSerializer(request.user)
+        return Response({"user":serializer.data}, status=status.HTTP_200_OK)  # 1 means student
+
+
+class StudentViewSet(viewsets.ModelViewSet):
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+            
+    @action(detail=False, methods=['GET'])
+    def student_or_office(self, request):
+        user = request.user
+        try:
+            student = Student.objects.get(user=user)
+            return Response(1, status=status.HTTP_200_OK)  # 1 means student
+        except Student.DoesNotExist:
+            try:
+                office = Office.objects.get(user=user)
+                return Response(2, status=status.HTTP_200_OK)  # 2 means office
+            except Office.DoesNotExist:
+                return Response(3, status=status.HTTP_200_OK)  # 3 means this user is not student and not office
+
+    @action(detail=False, methods=['POST'])
+    def create_objects(self, request):
+        user = request.user
+        office = Office.objects.get(user=user)
+        # Read the JSON
+        students_string = request.data['students']
+        try:
+            students = json.loads(students_string)
+        except json.decoder.JSONDecodeError:
+            return Response('The file is invalid', status=status.HTTP_200_OK)
+        # Create a Django model object for each object in the JSON
+        try:
+            with transaction.atomic():
+                for student in students:
+
+                    student_user = User.objects.create_user(student['name'], student['email'], student['password'])
+                    Token.objects.create(user=student_user)
+                    student_obj = Student.objects.create(user=student_user, student_id=student['id'],
+                                                         amount_elective=student['amount_elective'], office=office)
+                    for course in student['courses']:
+                        cur = Course.objects.get(course_id=course)
+                        student_obj.courses.add(cur)
+        except KeyError as e:
+            return Response("KeyError" + str(e), status=status.HTTP_200_OK)
+        return Response('Students created', status=status.HTTP_200_OK)
 
 
 class Course_groupViewSet(viewsets.ModelViewSet):
@@ -160,10 +224,12 @@ class CourseViewSet(viewsets.ModelViewSet):
                                               lecturer=course['lecturer'],
                                               day=course['day'], capacity=course['capacity'],
                                               time_start=course['start_time'],
-                                              time_end=course['end_time'], course_group=course_group)
+                                              time_end=course['end_time'], course_group=course_group
+                                              )
                     except Course_group.DoesNotExist:
                         course_group = Course_group.objects.create(name=course['name'],
-                                                                   is_elective=course['is_elective'], office=office)
+                                                                   is_elective=course['is_elective'], office=office,
+                                                                   groups=course['groups'])
                         Course.objects.create(course_id=course['id'], Semester=course['semester'],
                                               lecturer=course['lecturer'],
                                               day=course['day'], capacity=course['capacity'],
@@ -282,50 +348,6 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 
 
-class StudentViewSet(viewsets.ModelViewSet):
-    queryset = Student.objects.all()
-    serializer_class = StudentSerializer
-    authentication_classes = (TokenAuthentication,)
-    permission_classes = (IsAuthenticated,)
-
-    @action(detail=False, methods=['GET'])
-    def student_or_office(self, request):
-        user = request.user
-        try:
-            student = Student.objects.get(user=user)
-            return Response(1, status=status.HTTP_200_OK)  # 1 means student
-        except Student.DoesNotExist:
-            try:
-                office = Office.objects.get(user=user)
-                return Response(2, status=status.HTTP_200_OK)  # 2 means office
-            except Office.DoesNotExist:
-                return Response(3, status=status.HTTP_200_OK)  # 3 means this user is not student and not office
-
-    @action(detail=False, methods=['POST'])
-    def create_objects(self, request):
-        user = request.user
-        office = Office.objects.get(user=user)
-        # Read the JSON
-        students_string = request.data['students']
-        try:
-            students = json.loads(students_string)
-        except json.decoder.JSONDecodeError:
-            return Response('The file is invalid', status=status.HTTP_200_OK)
-        # Create a Django model object for each object in the JSON
-        try:
-            with transaction.atomic():
-                for student in students:
-
-                    student_user = User.objects.create_user(student['name'], student['email'], student['password'])
-                    Token.objects.create(user=student_user)
-                    student_obj = Student.objects.create(user=student_user, student_id=student['id'],
-                                                         amount_elective=student['amount_elective'], office=office)
-                    for course in student['courses']:
-                        cur = Course.objects.get(course_id=course)
-                        student_obj.courses.add(cur)
-        except KeyError as e:
-            return Response("KeyError" + str(e), status=status.HTTP_200_OK)
-        return Response('Students created', status=status.HTTP_200_OK)
 
 
 class OfficeViewSet(viewsets.ModelViewSet):

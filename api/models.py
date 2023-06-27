@@ -18,7 +18,7 @@ class Course_group(models.Model):
     syllabus = models.FileField(upload_to='syllabus/', null=True, blank=True)
     is_elective = models.BooleanField(default=True)
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="courses", default=1)
-
+    groups = models.IntegerField(null=True,blank=False)
     def __str__(self):
         return self.name
 
@@ -35,6 +35,7 @@ class Course(models.Model):
     time_start = models.TimeField()
     time_end = models.TimeField()
     course_group = models.ForeignKey(Course_group, on_delete=models.CASCADE, related_name="courses")
+    
 
     def __str__(self):
         return str(self.course_id)
