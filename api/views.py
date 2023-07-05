@@ -31,6 +31,7 @@ class RegisterView(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'])
     def post(self, request):
         email = request.data.get('email')
+        print(email)
         form = RegitrationForm(request.data)
         if form.is_valid():
             print("valid form")
@@ -38,7 +39,7 @@ class RegisterView(viewsets.ModelViewSet):
                 student_user = send_verification_email(request, form )
                 Token.objects.create(user=student_user)
                 Student.objects.create(user=student_user)
-                return Response({'message': 'Registration successful'}, status=status.HTTP_201_CREATED)                    
+                return Response({'message': 'קישור לאימות חשבונך נשלח לכתובת האימייל שהזנת (בדקו בספאם)'}, status=status.HTTP_201_CREATED)                    
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
@@ -46,7 +47,7 @@ class RegisterView(viewsets.ModelViewSet):
                 student = User.objects.get(email=email)
                 if student.is_active:
                     print("active")
-                    return Response({'message': 'משתמש/ת רשום'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'message': 'חשבון קיים'}, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     print("inactive")
                     return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_400_BAD_REQUEST)
@@ -277,17 +278,17 @@ class CourseViewSet(viewsets.ModelViewSet):
                     start_table = str(start_hour) + ':00'
                 if time_start == datetime.strptime(start_table, '%H:%M').time():
                     if course['day'] == 'א':
-                        courses_semester_a[i][5].append(course)
-                    if course['day'] == 'ב':
-                        courses_semester_a[i][4].append(course)
-                    if course['day'] == 'ג':
-                        courses_semester_a[i][3].append(course)
-                    if course['day'] == 'ד':
-                        courses_semester_a[i][2].append(course)
-                    if course['day'] == 'ה':
-                        courses_semester_a[i][1].append(course)
-                    if course['day'] == 'ו':
                         courses_semester_a[i][0].append(course)
+                    if course['day'] == 'ב':
+                        courses_semester_a[i][1].append(course)
+                    if course['day'] == 'ג':
+                        courses_semester_a[i][2].append(course)
+                    if course['day'] == 'ד':
+                        courses_semester_a[i][3].append(course)
+                    if course['day'] == 'ה':
+                        courses_semester_a[i][4].append(course)
+                    if course['day'] == 'ו':
+                        courses_semester_a[i][5].append(course)
         return Response(courses_semester_a, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
