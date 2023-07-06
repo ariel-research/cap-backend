@@ -156,4 +156,4 @@ EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = 'Ariel - Courses <ariel.research23@gmail.com>'
 LOGIN_URL = 'http://46.101.218.40:3000/'
 VERIFICATION_SUCCESS_TEMPLATE = None
-HTML_MESSAGE_TEMPLATE = "/../templates/email_verification_msg.html"
+#HTML_MESSAGE_TEMPLATE = 'cap/email_verification_msg.html'

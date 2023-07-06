@@ -31,14 +31,22 @@ class RegisterView(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'])
     def post(self, request):
         email = request.data.get('email')
+        amount_elective= request.data.get('amount_elective')
+        user_type =  request.data.get('user_type')
         print(email)
         form = RegitrationForm(request.data)
         if form.is_valid():
             print("valid form")
             try:
+                
                 student_user = send_verification_email(request, form )
+                print("email sent")
                 Token.objects.create(user=student_user)
-                Student.objects.create(user=student_user)
+                if user_type == "student":
+                    office = None
+                else:
+                    office = Office.objects.get(office_id=2)
+                Student.objects.create(user=student_user,amount_elective=amount_elective,office=office)
                 return Response({'message': 'קישור לאימות חשבונך נשלח לכתובת האימייל שהזנת (בדקו בספאם)'}, status=status.HTTP_201_CREATED)                    
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -89,7 +97,35 @@ class StudentViewSet(viewsets.ModelViewSet):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-            
+    def get_student_details(self, request):
+        serializer = serializer_class(request.user)
+        return Response({"student":serializer.data}, status=status.HTTP_200_OK)  # 1 means student
+
+    @action(detail=False, methods=['POST'])
+    def update_student_details(self, request):
+        user = request.user
+        email = request.data.get('email')
+        amount_elective = request.data.get('amount_elective')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        password = request.data.get('password')
+        try:
+            with transaction.atomic():
+                user_obj = User.objects.get(email=email)
+                student = Student.objects.get(user=user)
+                student.amount_elective = amount_elective
+                user_obj.first_name = first_name
+                user_obj.last_name = last_name
+                user_obj.set_passowrd(password)
+                user_obj.save()
+                student.save()
+            return Response({"message":"הפרטים התעדכנו בהצלחה"}, status=status.HTTP_200_OK)  # 1 means student
+
+        except Execption as e:
+            return Response({"message":"השינויים לא נשמרו"}, status=status.HTTP_200_OK)  # 1 means student
+
+
+
     @action(detail=False, methods=['GET'])
     def student_or_office(self, request):
         user = request.user

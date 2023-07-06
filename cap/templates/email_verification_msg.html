@@ -1,0 +1,86 @@
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
+    
+    <title>אימות חשבון - דירוג קורסי בחירה</title>
+
+    <style>
+        .format-font {
+            font-family: 'Montserrat', sans-serif; 
+        }
+        .my-container {
+            margin: 10px;
+            padding: 10px;
+            padding-top: 0px;
+            justify-content: center;
+            border-radius: 5px;
+            border: 1px solid rgb(204, 203, 203);
+			direction: rtl;
+        }
+
+        .my-button {
+            padding: 10px;
+            padding-left: 35px;
+            padding-right: 35px;
+            background-color: rgb(13, 110, 253);
+            color: white;
+            border-radius: 25px;
+            transition-duration: 500ms;
+            text-decoration: none;
+            
+        }
+        .my-button:hover {
+            color: rgb(13, 110, 253);
+            background-color: white;
+            border-radius: 0px;
+            border: 1px solid rgb(13, 110, 253);
+            transition-duration: 200ms;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="my-container">
+
+        <div style=" border-radius: 15px;"className='bg-primary'>
+            <h1 class="format-font" style="text-align: center; padding: 2px; color:white;">
+                Account Activation
+            </h1>
+        </div>
+
+        <h2 class="format-font" style="text-align: center;">דירוג קורסים אריאל - אימות חשבון</h2> <hr className='bg-primary' style=" width:100px">
+
+        <div class="format-font" style="margin-top: 20px; line-height: 1.5; text-align: center">
+            <p style="text-align: center; font-weight: bold;">צעד נוסף בדרך לסיום התואר!</p>
+            תודה שיצרת חשבון במערכת דירוג הקורסים באונ' אריאל. 
+            להשלמת הרישום יש ללחוץ על הקישור שלהלן על מנת שנוכל לאמת את זהותך כסטודנט באריאל.     
+        </div>
+
+        <p class="format-font" style="text-align: center; margin-top: 50px;">
+            לחיצה על הלינק תוביל לאימות חשבונך: 
+            <hr style="width:50px" className='bg-primary'>
+            <div class="format-font" style="text-align: center; margin-top: 30px;" >
+                <a href="{{link}}" class="my-button" >אימות</a>
+            </div>
+            
+        </p>
+    
+        <p class="format-font" style="text-align: center; margin-top: 50px; ">
+           <b>מועד פתיחת הדירוג יקבע ע"פ החלטת המחלקה</b>
+        </p>
+    
+        <p class="format-font" style="line-height: 1.5;">
+            <b>שמחים לראותך! <br>אין להשיב למייל זה </b>
+        </p>
+        
+    </div>
+   
+</body>
+</html>
