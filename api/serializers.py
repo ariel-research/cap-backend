@@ -72,6 +72,12 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = ['student_id', 'user', 'amount_elective', 'office', 'courses']
 
+class StudentUserSerializer(serializers.ModelSerializer):
+    courses = CourseSerializer(many=True)
+    user = UserSerializer()
+    class Meta:
+        model = Student
+        fields = ['student_id', 'user', 'amount_elective', 'office', 'courses']
 
 
 class StudentMiniSerializer(serializers.Serializer):

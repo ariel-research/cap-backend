@@ -24,7 +24,8 @@ SECRET_KEY = 'byk5yxb%_5p@pe=*o1tpsvx&reo@)#bi-%7b#pmwqn+$9!l4g-'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['46.101.218.40']
+ALLOWED_HOSTS = ['localhost']
+
 
 # Application definition
 
@@ -41,7 +42,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'import_export',
     "verify_email.apps.VerifyEmailConfig",
-    'django_email_verification',  
+    'django_rest_passwordreset',
 
 ]
 
@@ -60,15 +61,16 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'cap.urls'
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://46.101.218.40:3000"
+    "http://localhost:3000"
 
 ]
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            'templates',
+            ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -154,6 +156,13 @@ EMAIL_HOST_PASSWORD = ''
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = 'Ariel - Courses <ariel.research23@gmail.com>'
-LOGIN_URL = 'http://46.101.218.40:3000/'
+LOGIN_URL = 'http://127.0.0.1:3000/'
 VERIFICATION_SUCCESS_TEMPLATE = None
 #HTML_MESSAGE_TEMPLATE = 'cap/email_verification_msg.html'
+DJANGO_REST_PASSWORDRESET_TOKEN_CONFIG = {
+    "CLASS": "django_rest_passwordreset.tokens.RandomNumberTokenGenerator",
+    "OPTIONS": {
+        "min_number": 1500,
+        "max_number": 9999
+    }
+}

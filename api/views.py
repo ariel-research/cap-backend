@@ -13,13 +13,14 @@ from .models import Course, Course_group, Student, Ranking, Result, Office
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from .serializers import CourseSerializer, Course_groupSerializer, CourseMiniSerializer, StudentSerializer, \
-    RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer, StudentMiniSerializer
+    RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer, StudentMiniSerializer, \
+    StudentUserSerializer
 from api.SP_algorithm.main import main
 from verify_email.email_handler import send_verification_email
+from .singnals import password_reset_token_created
 from .forms import RegitrationForm
 
 from django.contrib.auth import get_user_model
-from django_email_verification import send_email
 # take second element for sort
 def take_score(elem):
     return elem.get("score")
@@ -28,6 +29,21 @@ class RegisterView(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = (AllowAny,)
     
+    @action(detail=False, methods=['POST'])
+    def send_reset_email(self, request):
+        email = request.data.get('email')
+        if not User.objects.filter(email = email).exists():
+            return Response({'message': 'משתמש לא קיים','status':0}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            try:
+                user = User.objects.get(email=email)
+                serializer = UserSerializer(user)
+                password_reset_token_created()
+                return Response({'message': 'קוד לאיפוס סיסמתך נשלח לכתובת האימייל (בדקו בספאם)', 'status':1, 'user':serializer.data}, status=status.HTTP_200_OK)                    
+            except Exception as e:
+                 return Response({'message': 'אירעה שגיאה במהלך שליחת קוד איפוס סיסמא','status':-1}, status=status.HTTP_400_BAD_REQUEST)
+
+
     @action(detail=False, methods=['POST'])
     def post(self, request):
         email = request.data.get('email')
@@ -76,9 +92,9 @@ class UserViewSet(viewsets.ModelViewSet):
         try:
             username= request.query_params.get('username')
             if not User.objects.filter(username = username).exists():
-                return Response({'message': 'משתמש לא קיים'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'message': 'חשבון לא קיים'}, status=status.HTTP_400_BAD_REQUEST)
             elif self.queryset.get(username= username).is_active:
-                return Response({'message': 'שם משתמש או סיסמא שגויים'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'message': 'אימייל או סיסמא שגויים'}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -96,19 +112,24 @@ class StudentViewSet(viewsets.ModelViewSet):
     serializer_class = StudentSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-
+    
+    @action(detail=False, methods=['GET'])
     def get_student_details(self, request):
-        serializer = serializer_class(request.user)
-        return Response({"student":serializer.data}, status=status.HTTP_200_OK)  # 1 means student
+        print(request,request.user)
+        student = Student.objects.get(user=request.user)
+        serializer = StudentUserSerializer(student)
+        print(serializer)
+        return Response(serializer.data, status=status.HTTP_200_OK)  
 
     @action(detail=False, methods=['POST'])
     def update_student_details(self, request):
         user = request.user
-        email = request.data.get('email')
-        amount_elective = request.data.get('amount_elective')
-        first_name = request.data.get('first_name')
-        last_name = request.data.get('last_name')
-        password = request.data.get('password')
+        userEdited = request.updated_details
+        email = userEdited.email
+        amount_elective = userEdited.amount_elective
+        first_name = userEdited.first_name
+        last_name = userEdited.last_name
+        password = userEdited.password
         try:
             with transaction.atomic():
                 user_obj = User.objects.get(email=email)
@@ -119,10 +140,9 @@ class StudentViewSet(viewsets.ModelViewSet):
                 user_obj.set_passowrd(password)
                 user_obj.save()
                 student.save()
-            return Response({"message":"הפרטים התעדכנו בהצלחה"}, status=status.HTTP_200_OK)  # 1 means student
-
+            return Response({"message":"הפרטים התעדכנו בהצלחה"}, status=status.HTTP_200_OK) 
         except Execption as e:
-            return Response({"message":"השינויים לא נשמרו"}, status=status.HTTP_200_OK)  # 1 means student
+            return Response({"message":"השינויים לא נשמרו"}, status=status.HTTP_200_OK)
 
 
 
