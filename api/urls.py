@@ -37,7 +37,7 @@ router.register(
 
 urlpatterns = [
     path('', include(router.urls)),
-    path(r'^password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
-
+    path(r'password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
+    #path('accounts/', include('rest_registration.api.urls')),
     
 ]

@@ -41,7 +41,8 @@ class RegisterView(viewsets.ModelViewSet):
                 password_reset_token_created()
                 return Response({'message': 'קוד לאיפוס סיסמתך נשלח לכתובת האימייל (בדקו בספאם)', 'status':1, 'user':serializer.data}, status=status.HTTP_200_OK)                    
             except Exception as e:
-                 return Response({'message': 'אירעה שגיאה במהלך שליחת קוד איפוס סיסמא','status':-1}, status=status.HTTP_400_BAD_REQUEST)
+                print(e)
+                return Response({'message': 'אירעה שגיאה במהלך שליחת קוד איפוס סיסמא','status':-1}, status=status.HTTP_400_BAD_REQUEST)
 
 
     @action(detail=False, methods=['POST'])
@@ -49,7 +50,10 @@ class RegisterView(viewsets.ModelViewSet):
         email = request.data.get('email')
         amount_elective= request.data.get('amount_elective')
         user_type =  request.data.get('user_type')
+        student_id =  request.data.get('student_id')
+
         print(email)
+        request.data["username"]=email
         form = RegitrationForm(request.data)
         if form.is_valid():
             print("valid form")
@@ -59,10 +63,10 @@ class RegisterView(viewsets.ModelViewSet):
                 print("email sent")
                 Token.objects.create(user=student_user)
                 if user_type == "student":
-                    office = None
+                    office = Office.objects.get(office_id=1)
                 else:
                     office = Office.objects.get(office_id=2)
-                Student.objects.create(user=student_user,amount_elective=amount_elective,office=office)
+                Student.objects.create(user=student_user, student_id=student_id, amount_elective=amount_elective,office=office)
                 return Response({'message': 'קישור לאימות חשבונך נשלח לכתובת האימייל שהזנת (בדקו בספאם)'}, status=status.HTTP_201_CREATED)                    
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -124,12 +128,12 @@ class StudentViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'])
     def update_student_details(self, request):
         user = request.user
-        userEdited = request.updated_details
-        email = userEdited.email
-        amount_elective = userEdited.amount_elective
-        first_name = userEdited.first_name
-        last_name = userEdited.last_name
-        password = userEdited.password
+        studentEdited = request.data.get('profile')
+        email = studentEdited['user']['email']
+        amount_elective = studentEdited['amount_elective']
+        first_name = studentEdited['user']['first_name']
+        last_name = studentEdited['user']['last_name']
+        #password = studentEdited['user']['password']
         try:
             with transaction.atomic():
                 user_obj = User.objects.get(email=email)
@@ -137,11 +141,12 @@ class StudentViewSet(viewsets.ModelViewSet):
                 student.amount_elective = amount_elective
                 user_obj.first_name = first_name
                 user_obj.last_name = last_name
-                user_obj.set_passowrd(password)
+                #user_obj.set_passowrd(password)
                 user_obj.save()
                 student.save()
             return Response({"message":"הפרטים התעדכנו בהצלחה"}, status=status.HTTP_200_OK) 
-        except Execption as e:
+        except Exception as e:
+            print(e)
             return Response({"message":"השינויים לא נשמרו"}, status=status.HTTP_200_OK)
 
 
@@ -382,17 +387,17 @@ class CourseViewSet(viewsets.ModelViewSet):
                     start_table = str(start_hour) + ':00'
                 if time_start == datetime.strptime(start_table, '%H:%M').time():
                     if course['day'] == 'א':
-                        courses_semester_a[i][5].append(course)
-                    if course['day'] == 'ב':
-                        courses_semester_a[i][4].append(course)
-                    if course['day'] == 'ג':
-                        courses_semester_a[i][3].append(course)
-                    if course['day'] == 'ד':
-                        courses_semester_a[i][2].append(course)
-                    if course['day'] == 'ה':
-                        courses_semester_a[i][1].append(course)
-                    if course['day'] == 'ו':
                         courses_semester_a[i][0].append(course)
+                    if course['day'] == 'ב':
+                        courses_semester_a[i][1].append(course)
+                    if course['day'] == 'ג':
+                        courses_semester_a[i][2].append(course)
+                    if course['day'] == 'ד':
+                        courses_semester_a[i][3].append(course)
+                    if course['day'] == 'ה':
+                        courses_semester_a[i][4].append(course)
+                    if course['day'] == 'ו':
+                        courses_semester_a[i][5].append(course)
         return Response(courses_semester_a, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
