@@ -10,10 +10,10 @@ gmail account \
 
 1. Clone the repository: \
   `git clone https://github.com/ariel-research/cap-backend`
-2. Switch to 'ariel' branch: \
-  `git checkout ariel`
-3. Write the command: \
+2. Write the command: \
 	`cd cap-backend`
+3. Switch to 'ariel' branch: \
+  `git checkout ariel`
 4. Create a Python virtual environment for your Django project: \
   `python -m venv venv`
 5. Activate the virtual environment: \
