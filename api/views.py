@@ -17,7 +17,7 @@ from .serializers import CourseSerializer, Course_groupSerializer, CourseMiniSer
     StudentUserSerializer
 from api.SP_algorithm.main import main
 from verify_email.email_handler import send_verification_email
-from .singnals import password_reset_token_created
+from .signals import password_reset_token_created
 from .forms import RegitrationForm
 
 from django.contrib.auth import get_user_model
