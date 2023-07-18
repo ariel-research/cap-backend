@@ -11,6 +11,12 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+HOSTNAME = os.getenv("HOSTNAME")
+PORT_FRONTEND = os.getenv("PORT_FRONTEND")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,12 +25,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'byk5yxb%_5p@pe=*o1tpsvx&reo@)#bi-%7b#pmwqn+$9!l4g-'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost']
+ALLOWED_HOSTS = [HOSTNAME]
 
 
 # Application definition
@@ -43,8 +49,6 @@ INSTALLED_APPS = [
     'import_export',
     "verify_email.apps.VerifyEmailConfig",
     'django_rest_passwordreset',
-    #'rest_registration',
-
 
 ]
 
@@ -63,7 +67,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'cap.urls'
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000"
+    f'http://{HOSTNAME}:{PORT_FRONTEND}'
 
 ]
 
@@ -107,14 +111,6 @@ REST_FRAMEWORK = {
 
     ),
 }
-"""REST_REGISTRATION = {
-    'REGISTER_VERIFICATION_URL': 'http://localhost:3000/verify-user/',
-    'RESET_PASSWORD_VERIFICATION_URL': 'http://localhost:3000/reset-password/',
-    'REGISTER_EMAIL_VERIFICATION_URL': 'http://localhost:3000/verify-email/',
-
-    'VERIFICATION_FROM_EMAIL': 'no-reply@example.com',
-}"""
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -152,23 +148,27 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+
 NOSE_ARGS = ['--nocapture',
              '--nologcapture',]
 
 
 # For Django Email Backend
-import os
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-#EMAIL_HOST_USER = 'ariel.research23@gmail.com'
-#EMAIL_HOST_PASSWORD = ''
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = os.getenv("EMAIL_PORT")
+EMAIL_HOST_USER =  os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-#DEFAULT_FROM_EMAIL = 'Ariel - Courses <ariel.research23@gmail.com>'
-LOGIN_URL = 'http://127.0.0.1:3000/'
+DEFAULT_FROM_EMAIL = '{} <{}>'.format(os.getenv("FROM_EMAIL"),EMAIL_HOST_USER)
+
+# email varification settings
+LOGIN_URL = f'http://{HOSTNAME}:{PORT_FRONTEND}/'
 VERIFICATION_SUCCESS_TEMPLATE = None
 HTML_MESSAGE_TEMPLATE = 'email_verification_msg.html'
+
+# password reset settings
 DJANGO_REST_PASSWORDRESET_TOKEN_CONFIG = {
     "CLASS": "django_rest_passwordreset.tokens.RandomNumberTokenGenerator",
     "OPTIONS": {
