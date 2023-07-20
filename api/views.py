@@ -122,7 +122,6 @@ class StudentViewSet(viewsets.ModelViewSet):
         print(request,request.user)
         student = Student.objects.get(user=request.user)
         serializer = StudentUserSerializer(student)
-        print(serializer)
         return Response(serializer.data, status=status.HTTP_200_OK)  
 
     @action(detail=False, methods=['POST'])
@@ -131,23 +130,25 @@ class StudentViewSet(viewsets.ModelViewSet):
         studentEdited = request.data.get('profile')
         email = studentEdited['user']['email']
         amount_elective = studentEdited['amount_elective']
+        student_id = float(studentEdited['student_id'])
         first_name = studentEdited['user']['first_name']
         last_name = studentEdited['user']['last_name']
         #password = studentEdited['user']['password']
         try:
-            with transaction.atomic():
-                user_obj = User.objects.get(email=email)
-                student = Student.objects.get(user=user)
-                student.amount_elective = amount_elective
-                user_obj.first_name = first_name
-                user_obj.last_name = last_name
-                #user_obj.set_passowrd(password)
-                user_obj.save()
-                student.save()
+            user_obj = User.objects.get(email=email)
+            student = Student.objects.get(user=user_obj)
+            print(student_id,student.student_id)
+            if student.student_id !=student_id and Student.objects.filter(student_id = student_id).exists():
+                return Response({"message":"לא ניתן להשתמש במספר תעודת הזהות שהוזן"}, status=status.HTTP_400_BAD_REQUEST)
+            student.student_id = student_id
+            student.amount_elective = amount_elective
+            user_obj.first_name = first_name
+            user_obj.last_name = last_name
+            user_obj.save()
+            student.save()
             return Response({"message":"הפרטים התעדכנו בהצלחה"}, status=status.HTTP_200_OK) 
         except Exception as e:
-            print(e)
-            return Response({"message":"השינויים לא נשמרו"}, status=status.HTTP_200_OK)
+            return Response({"message":f"{e} השינויים לא נשמרו"}, status=status.HTTP_200_OK)
 
 
 
@@ -220,7 +221,7 @@ class Course_groupViewSet(viewsets.ModelViewSet):
             default_ranking = []
             for course in courses:
                 rank = {"name": course.course_group.name, "lecturer": course.lecturer, "semester": course.Semester,
-                        "day": course.day, "time_start": course.time_start, "time_end": course.time_end, "score": 30,
+                        "day": course.day, "time_start": course.time_start, "time_end": course.time_end, "score": 0,
                         "id": course.course_id, 'overlap': False}
                 for mandatory in student_courses:
                     mandatory_start = datetime.strptime(mandatory['time_start'], '%H:%M:%S').time()
@@ -281,7 +282,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 for course in courses:
                     try:
-                        course_group = Course_group.objects.get(name=course['name'])
+                        course_group = Course_group.objects.get(name=course['name'],office=office)
                         Course.objects.create(course_id=course['id'], Semester=course['semester'],
                                               lecturer=course['lecturer'],
                                               day=course['day'], capacity=course['capacity'],
@@ -291,7 +292,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                     except Course_group.DoesNotExist:
                         course_group = Course_group.objects.create(name=course['name'],
                                                                    is_elective=course['is_elective'], office=office,
-                                                                   groups=course['groups'])
+                                                                   groups=1)
                         Course.objects.create(course_id=course['id'], Semester=course['semester'],
                                               lecturer=course['lecturer'],
                                               day=course['day'], capacity=course['capacity'],

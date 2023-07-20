@@ -48,7 +48,7 @@ class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE )
     amount_elective = models.IntegerField(null=True,)
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="students", default=1)
-    courses = models.ManyToManyField(Course,null=True,)
+    courses = models.ManyToManyField(Course,null=True,blank=True)
 
     def __str__(self):
         return "%s's profile" % str(self.user.email if self.user.email else self.student_id)
