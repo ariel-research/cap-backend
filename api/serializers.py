@@ -70,14 +70,14 @@ class StudentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['student_id', 'user', 'amount_elective', 'office', 'courses']
+        fields = ['student_id', 'user', 'amount_elective', 'office', 'courses', 'program']
 
 class StudentUserSerializer(serializers.ModelSerializer):
     courses = CourseSerializer(many=True)
     user = UserSerializer()
     class Meta:
         model = Student
-        fields = ['student_id', 'user', 'amount_elective', 'office', 'courses']
+        fields = ['student_id', 'user', 'amount_elective', 'office', 'courses', 'program']
 
 
 class StudentMiniSerializer(serializers.Serializer):

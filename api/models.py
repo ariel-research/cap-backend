@@ -44,12 +44,16 @@ class Course(models.Model):
 class Student(models.Model):
     #student_id = models.IntegerField(unique=True, validators=[
     #    RegexValidator(regex='^.{9}$', message='תעודת הזהות חייבת להיות 9 ספרות', code='nomatch')])
+    class Program(models.TextChoices):
+        BASIC = "1", "BASIC"
+        EXCELL = "2", "EXCELLENCE"
+
     student_id = models.IntegerField(null=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE )
     amount_elective = models.IntegerField(null=True,)
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="students", default=1)
     courses = models.ManyToManyField(Course,null=True,blank=True)
-
+    program = models.CharField(choices=Program,null=True,blank=True, default=Program.BASIC)
     def __str__(self):
         return "%s's profile" % str(self.user.email if self.user.email else self.student_id)
 
