@@ -33,13 +33,13 @@ class RegisterView(viewsets.ModelViewSet):
     def send_reset_email(self, request):
         email = request.data.get('email')
         if not User.objects.filter(email = email).exists():
-            return Response({'message': 'משתמש לא קיים','status':0}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'משתמש לא קיים','status':0}, status=status.HTTP_404_NOT_FOUND)
         else:
             try:
                 user = User.objects.get(email=email)
                 serializer = UserSerializer(user)
                 password_reset_token_created()
-                return Response({'message': 'קוד לאיפוס סיסמתך נשלח לכתובת האימייל (בדקו בספאם)', 'status':1, 'user':serializer.data}, status=status.HTTP_200_OK)                    
+                return Response({'message': 'קוד לאיפוס סיסמתך נשלח לכתובת האימייל (בדקו בספאם)', 'status':1, 'user':serializer.data}, status=status.HTTP_202_ACCEPTED)                    
             except Exception as e:
                 print(e)
                 return Response({'message': 'אירעה שגיאה במהלך שליחת קוד איפוס סיסמא','status':-1}, status=status.HTTP_400_BAD_REQUEST)
@@ -67,7 +67,7 @@ class RegisterView(viewsets.ModelViewSet):
                 else:
                     office = Office.objects.get(office_id=2)
                 Student.objects.create(user=student_user, student_id=student_id, amount_elective=amount_elective,office=office)
-                return Response({'message': 'קישור לאימות חשבונך נשלח לכתובת האימייל שהזנת (בדקו בספאם)'}, status=status.HTTP_201_CREATED)                    
+                return Response({'message': 'קישור לאימות חשבונך נשלח לכתובת האימייל שהזנת (בדקו בספאם)'}, status=status.HTTP_202_ACCEPTED)                    
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
@@ -75,13 +75,11 @@ class RegisterView(viewsets.ModelViewSet):
                 student = User.objects.get(email=email)
                 if student.is_active:
                     print("active")
-                    return Response({'message': 'חשבון קיים'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'message': 'חשבון קיים'}, status=status.HTTP_409_CONFLICT)
                 else:
                     print("inactive")
-                    return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_409_CONFLICT)
             return Response({'error': str(form.errors)}, status=status.HTTP_400_BAD_REQUEST)
-        #user = User.objects.create_user(username=username, email=email, password=password)
-        # You can also perform additional validation or save other user-related information here
                 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -96,11 +94,11 @@ class UserViewSet(viewsets.ModelViewSet):
         try:
             username= request.query_params.get('username')
             if not User.objects.filter(username = username).exists():
-                return Response({'message': 'חשבון לא קיים'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'חשבון לא קיים'}, status=status.HTTP_404_NOT_FOUND)
             elif self.queryset.get(username= username).is_active:
-                return Response({'message': 'אימייל או סיסמא שגויים'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'message': 'אימייל או סיסמא שגויים'}, status=status.HTTP_401_UNAUTHORIZED)
             else:
-                return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_409_CONFLICT)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
@@ -108,7 +106,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'])
     def get_user_details(self, request):
         serializer = UserSerializer(request.user)
-        return Response({"user":serializer.data}, status=status.HTTP_200_OK)  # 1 means student
+        return Response({"user":serializer.data}, status=status.HTTP_200_OK) 
 
 
 class StudentViewSet(viewsets.ModelViewSet):
@@ -133,13 +131,12 @@ class StudentViewSet(viewsets.ModelViewSet):
         student_id = float(studentEdited['student_id'])
         first_name = studentEdited['user']['first_name']
         last_name = studentEdited['user']['last_name']
-        #password = studentEdited['user']['password']
         try:
             user_obj = User.objects.get(email=email)
             student = Student.objects.get(user=user_obj)
             print(student_id,student.student_id)
             if student.student_id !=student_id and Student.objects.filter(student_id = student_id).exists():
-                return Response({"message":"לא ניתן להשתמש במספר תעודת הזהות שהוזן"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message":"לא ניתן להשתמש במספר תעודת הזהות שהוזן"}, status=status.HTTP_409_CONFLICT)
             student.student_id = student_id
             student.amount_elective = amount_elective
             user_obj.first_name = first_name
@@ -163,7 +160,7 @@ class StudentViewSet(viewsets.ModelViewSet):
                 office = Office.objects.get(user=user)
                 return Response(2, status=status.HTTP_200_OK)  # 2 means office
             except Office.DoesNotExist:
-                return Response(3, status=status.HTTP_200_OK)  # 3 means this user is not student and not office
+                return Response(3, status=status.HTTP_401_UNAUTHORIZED)  # 3 means this user is not student and not office
 
     @action(detail=False, methods=['POST'])
     def create_objects(self, request):
@@ -174,7 +171,7 @@ class StudentViewSet(viewsets.ModelViewSet):
         try:
             students = json.loads(students_string)
         except json.decoder.JSONDecodeError:
-            return Response('The file is invalid', status=status.HTTP_200_OK)
+            return Response('The file is invalid', status=status.HTTP_400_BAD_REQUEST)
         # Create a Django model object for each object in the JSON
         try:
             with transaction.atomic():
@@ -188,8 +185,8 @@ class StudentViewSet(viewsets.ModelViewSet):
                         cur = Course.objects.get(course_id=course)
                         student_obj.courses.add(cur)
         except KeyError as e:
-            return Response("KeyError" + str(e), status=status.HTTP_200_OK)
-        return Response('Students created', status=status.HTTP_200_OK)
+            return Response("KeyError" + str(e), status=status.HTTP_400_BAD_REQUEST)
+        return Response('Students created', status=status.HTTP_201_CREATED)
 
 
 class Course_groupViewSet(viewsets.ModelViewSet):
@@ -298,119 +295,71 @@ class CourseViewSet(viewsets.ModelViewSet):
                                               day=course['day'], capacity=course['capacity'],
                                               time_start=course['start_time'],
                                               time_end=course['end_time'], course_group=course_group)
-                return Response("הקורסים נוצרו", status=status.HTTP_200_OK)
+                return Response("הקורסים נוצרו", status=status.HTTP_201_CREATED)
 
 
         except KeyError as e:
-            return Response("KeyError" + str(e), status=status.HTTP_200_OK)
+            return Response("KeyError" + str(e), status=status.HTTP_400_BAD_REQUEST)
+
+    def get_semester(self, request, semester:str):
+        user = request.user
+        student = Student.objects.get(user=user)
+        student_serializer = StudentSerializer(student, many=False)
+        student_office = Student.objects.get(user=user).office
+        courses = Course.objects.filter(Semester=semester).filter(course_group__office=student_office).filter(
+            course_group__is_elective=True)
+        serializer = CourseSerializer(courses, many=True)
+        mandatory_courses = []
+        for course in student_serializer.data['courses']:
+            if course['Semester'] == semester:
+                course['mandatory'] = True
+                mandatory_courses.append(course)
+        for course in serializer.data:
+            course['mandatory'] = False
+        temp = list(serializer.data) + list(mandatory_courses)
+        serializer = temp
+        courses_semester = [[[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
+                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []]]
+
+        for course in serializer:
+            time_start = datetime.strptime(course['time_start'], '%H:%M:%S').time()
+            time_end = datetime.strptime(course['time_end'], '%H:%M:%S').time()
+            duration = str(datetime.combine(date.today(), time_end) - datetime.combine(date.today(), time_start))
+            course['duration'] = duration[0]
+            for i in range(14):
+                start_hour = i + 8
+                start_table = '0' + str(start_hour) + ':00'
+                if start_hour > 9:
+                    start_table = str(start_hour) + ':00'
+                if time_start == datetime.strptime(start_table, '%H:%M').time():
+                    if course['day'] == 'א':
+                        courses_semester[i][0].append(course)
+                    if course['day'] == 'ב':
+                        courses_semester[i][1].append(course)
+                    if course['day'] == 'ג':
+                        courses_semester[i][2].append(course)
+                    if course['day'] == 'ד':
+                        courses_semester[i][3].append(course)
+                    if course['day'] == 'ה':
+                        courses_semester[i][4].append(course)
+                    if course['day'] == 'ו':
+                        courses_semester[i][5].append(course)
+        return Response(courses_semester, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
     def get_semester_a(self, request):
-        user = request.user
-        student = Student.objects.get(user=user)
-        student_serializer = StudentSerializer(student, many=False)
-        student_office = Student.objects.get(user=user).office
-        courses = Course.objects.filter(Semester="א").filter(course_group__office=student_office).filter(
-            course_group__is_elective=True)
-        serializer = CourseSerializer(courses, many=True)
-        mandatory_courses = []
-        for course in student_serializer.data['courses']:
-            if course['Semester'] == 'א':
-                course['mandatory'] = True
-                mandatory_courses.append(course)
-        for course in serializer.data:
-            course['mandatory'] = False
-        temp = list(serializer.data) + list(mandatory_courses)
-        serializer = temp
-        courses_semester_a = [[[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
-                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
-                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
-                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
-                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []]]
-
-        for course in serializer:
-            time_start = datetime.strptime(course['time_start'], '%H:%M:%S').time()
-            time_end = datetime.strptime(course['time_end'], '%H:%M:%S').time()
-            duration = str(datetime.combine(date.today(), time_end) - datetime.combine(date.today(), time_start))
-            course['duration'] = duration[0]
-            for i in range(14):
-                start_hour = i + 8
-                start_table = '0' + str(start_hour) + ':00'
-                if start_hour > 9:
-                    start_table = str(start_hour) + ':00'
-                if time_start == datetime.strptime(start_table, '%H:%M').time():
-                    if course['day'] == 'א':
-                        courses_semester_a[i][0].append(course)
-                    if course['day'] == 'ב':
-                        courses_semester_a[i][1].append(course)
-                    if course['day'] == 'ג':
-                        courses_semester_a[i][2].append(course)
-                    if course['day'] == 'ד':
-                        courses_semester_a[i][3].append(course)
-                    if course['day'] == 'ה':
-                        courses_semester_a[i][4].append(course)
-                    if course['day'] == 'ו':
-                        courses_semester_a[i][5].append(course)
-        return Response(courses_semester_a, status=status.HTTP_200_OK)
-
+        return get_semester(request,'א')
+    
     @action(detail=False, methods=['GET'])
     def get_semester_b(self, request):
-        user = request.user
-        student = Student.objects.get(user=user)
-        student_serializer = StudentSerializer(student, many=False)
-        student_office = Student.objects.get(user=user).office
-        courses = Course.objects.filter(Semester="ב").filter(course_group__office=student_office).filter(
-            course_group__is_elective=True)
-        serializer = CourseSerializer(courses, many=True)
-        mandatory_courses = []
-        for course in student_serializer.data['courses']:
-            if course['Semester'] == 'ב':
-                course['mandatory'] = True
-                mandatory_courses.append(course)
-        for course in serializer.data:
-            course['mandatory'] = False
-        temp = list(serializer.data) + list(mandatory_courses)
-        serializer = temp
-        courses_semester_a = [[[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
-                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
-                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
-                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
-                              [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []]]
-        for course in serializer:
-            time_start = datetime.strptime(course['time_start'], '%H:%M:%S').time()
-            time_end = datetime.strptime(course['time_end'], '%H:%M:%S').time()
-            duration = str(datetime.combine(date.today(), time_end) - datetime.combine(date.today(), time_start))
-            course['duration'] = duration[0]
-            for i in range(14):
-                start_hour = i + 8
-                start_table = '0' + str(start_hour) + ':00'
-                if start_hour > 9:
-                    start_table = str(start_hour) + ':00'
-                if time_start == datetime.strptime(start_table, '%H:%M').time():
-                    if course['day'] == 'א':
-                        courses_semester_a[i][0].append(course)
-                    if course['day'] == 'ב':
-                        courses_semester_a[i][1].append(course)
-                    if course['day'] == 'ג':
-                        courses_semester_a[i][2].append(course)
-                    if course['day'] == 'ד':
-                        courses_semester_a[i][3].append(course)
-                    if course['day'] == 'ה':
-                        courses_semester_a[i][4].append(course)
-                    if course['day'] == 'ו':
-                        courses_semester_a[i][5].append(course)
-        return Response(courses_semester_a, status=status.HTTP_200_OK)
+        return get_semester(request,'ב')
 
     @action(detail=False, methods=['GET'])
     def get_semester_s(self, request):
-        user = request.user
-        student_office = Student.objects.get(user=user).office
-        courses = Course.objects.filter(Semester="ק").filter(course_group__office=student_office)
-        serializer = CourseSerializer(courses, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
+        return get_semester(request,'ק')
 
 
 class OfficeViewSet(viewsets.ModelViewSet):
@@ -575,7 +524,7 @@ class RankingViewSet(viewsets.ModelViewSet):
             for movie_rank in ranking:
                 course = Course.objects.get(course_id=movie_rank['id'])
                 Ranking.objects.create(course=course, student=student, rank=movie_rank['score'])
-            return Response('Ranking created', status=status.HTTP_200_OK)
+            return Response('Ranking created', status=status.HTTP_201_CREATED)
         else:  # the user rank his courses (update)
             for movie_rank in ranking:
                 course = Course.objects.get(course_id=movie_rank['id'])
