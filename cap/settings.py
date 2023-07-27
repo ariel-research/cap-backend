@@ -67,8 +67,8 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'cap.urls'
 
 CORS_ALLOWED_ORIGINS = [
-    f'http://{HOSTNAME}:{PORT_FRONTEND}'
-
+    f'http://{HOSTNAME}:{PORT_FRONTEND}',
+    f'http://{HOSTNAME}'
 ]
 
 TEMPLATES = [
@@ -147,7 +147,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 NOSE_ARGS = ['--nocapture',
              '--nologcapture',]
