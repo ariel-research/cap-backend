@@ -351,15 +351,15 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['GET'])
     def get_semester_a(self, request):
-        return get_semester(request,'א')
+        return self.get_semester(request,'א')
     
     @action(detail=False, methods=['GET'])
     def get_semester_b(self, request):
-        return get_semester(request,'ב')
+        return self.get_semester(request,'ב')
 
     @action(detail=False, methods=['GET'])
     def get_semester_s(self, request):
-        return get_semester(request,'ק')
+        return self.get_semester(request,'ק')
 
 
 class OfficeViewSet(viewsets.ModelViewSet):
