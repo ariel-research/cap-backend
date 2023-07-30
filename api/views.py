@@ -124,11 +124,11 @@ class StudentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['POST'])
     def update_student_details(self, request):
-        user = request.user
         studentEdited = request.data.get('profile')
         email = studentEdited['user']['email']
         amount_elective = studentEdited['amount_elective']
         student_id = float(studentEdited['student_id'])
+        program = studentEdited['program']
         first_name = studentEdited['user']['first_name']
         last_name = studentEdited['user']['last_name']
         try:
@@ -139,6 +139,7 @@ class StudentViewSet(viewsets.ModelViewSet):
                 return Response({"message":"לא ניתן להשתמש במספר תעודת הזהות שהוזן"}, status=status.HTTP_409_CONFLICT)
             student.student_id = student_id
             student.amount_elective = amount_elective
+            student.program = program
             user_obj.first_name = first_name
             user_obj.last_name = last_name
             user_obj.save()
