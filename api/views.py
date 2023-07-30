@@ -19,6 +19,7 @@ from api.SP_algorithm.main import main
 from verify_email.email_handler import send_verification_email
 from .signals import password_reset_token_created
 from .forms import RegitrationForm
+import logging
 
 from django.contrib.auth import get_user_model
 # take second element for sort
@@ -514,23 +515,19 @@ class RankingViewSet(viewsets.ModelViewSet):
     def rank_courses(self, request):
         user = request.user
         student = Student.objects.get(user=user)
-        is_rated = Ranking.objects.filter(student=student).order_by('rank')
         ranking = request.data['ranks']
         is_positive = 1000 - sum(rank['score'] for rank in ranking)
         if is_positive < 0:
             response = {'message': 'ניתן להשתמש לכל היותר ב-1000 נק'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        if len(is_rated) == 0:  # the user not rank his courses (create)
-            for movie_rank in ranking:
-                course = Course.objects.get(course_id=movie_rank['id'])
-                Ranking.objects.create(course=course, student=student, rank=movie_rank['score'])
-            return Response('Ranking created', status=status.HTTP_201_CREATED)
-        else:  # the user rank his courses (update)
-            for movie_rank in ranking:
-                course = Course.objects.get(course_id=movie_rank['id'])
-                Ranking.objects.filter(course=course, student=student).update(rank=movie_rank['score'])
-            return Response('Ranking updated', status=status.HTTP_200_OK)
-        return Response('ok', status=status.HTTP_200_OK)
+        for rank_pair in ranking:
+            course = Course.objects.get(course_id=rank_pair['id'])
+            obj, created = Ranking.objects.update_or_create(
+                course=course, student=student,
+                defaults={ 'rank': rank_pair['score']},
+            )
+            logging.debug(f'course {course.course_id} created: {created} rank_pair: {rank_pair}')
+        return Response('Ranking created', status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
         response = {'message': 'לא ניתן לעדכן דירוג באופן זה'}
