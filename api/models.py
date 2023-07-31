@@ -42,13 +42,11 @@ class Course(models.Model):
 
     
 class Student(models.Model):
-    #student_id = models.IntegerField(unique=True, validators=[
-    #    RegexValidator(regex='^.{9}$', message='תעודת הזהות חייבת להיות 9 ספרות', code='nomatch')])
     class Program(models.TextChoices):
         BASIC = "1", "BASIC"
         EXCELL = "2", "EXCELLENCE"
 
-    student_id = models.IntegerField(null=True)
+    student_id = models.IntegerField(unique=True, validators=[RegexValidator(regex='^.{9}$', message='תעודת הזהות חייבת להיות 9 ספרות', code='nomatch')])
     user = models.OneToOneField(User, on_delete=models.CASCADE )
     amount_elective = models.IntegerField(null=True,)
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="students", default=1)

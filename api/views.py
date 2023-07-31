@@ -18,7 +18,7 @@ from .serializers import CourseSerializer, Course_groupSerializer, CourseMiniSer
 from api.SP_algorithm.main import main
 from verify_email.email_handler import send_verification_email
 from .signals import password_reset_token_created
-from .forms import RegitrationForm
+from .forms import RegitrationForm, StudentForm
 import logging
 
 from django.contrib.auth import get_user_model
@@ -52,11 +52,12 @@ class RegisterView(viewsets.ModelViewSet):
         amount_elective= request.data.get('amount_elective')
         user_type =  request.data.get('user_type')
         student_id =  request.data.get('student_id')
-
+        program = request.data.get('program')
         print(email)
         request.data["username"]=email
         form = RegitrationForm(request.data)
-        if form.is_valid():
+        student_from =StudentForm(request.data)
+        if form.is_valid() and student_from.is_valid():
             print("valid form")
             try:
                 
@@ -80,6 +81,10 @@ class RegisterView(viewsets.ModelViewSet):
                 else:
                     print("inactive")
                     return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_409_CONFLICT)
+            if student_from['student_id'].errors:
+                return Response({'message': 'מספר ת.ז בשימוש'}, status=status.HTTP_400_BAD_REQUEST)
+            if form['password2'].errors:
+                return Response({'message': form['password2'].errors}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'error': str(form.errors)}, status=status.HTTP_400_BAD_REQUEST)
                 
 
