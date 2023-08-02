@@ -50,7 +50,7 @@ class RegisterView(viewsets.ModelViewSet):
     def post(self, request):
         email = request.data.get('email')
         amount_elective= request.data.get('amount_elective')
-        user_type =  request.data.get('user_type')
+        #user_type =  request.data.get('user_type')
         student_id =  request.data.get('student_id')
         program = request.data.get('program')
         print(email)
@@ -64,10 +64,11 @@ class RegisterView(viewsets.ModelViewSet):
                 student_user = send_verification_email(request, form )
                 print("email sent")
                 Token.objects.create(user=student_user)
-                if user_type == "student":
+                office = 1
+                """if user_type == "student":
                     office = Office.objects.get(office_id=1)
                 else:
-                    office = Office.objects.get(office_id=2)
+                    office = Office.objects.get(office_id=2)"""
                 Student.objects.create(user=student_user, student_id=student_id, amount_elective=amount_elective,office=office)
                 return Response({'message': 'קישור לאימות חשבונך נשלח לכתובת האימייל שהזנת (בדקו בספאם)'}, status=status.HTTP_202_ACCEPTED)                    
             except Exception as e:
