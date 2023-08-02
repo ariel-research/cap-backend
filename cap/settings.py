@@ -96,8 +96,13 @@ WSGI_APPLICATION = 'cap.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.getenv("DB_ENGINE"),
+        'NAME': os.getenv("DB_NAME"),
+        'USER': os.getenv("DB_USER"),
+        'PASSWORD': os.getenv("DB_PASSWORD"),
+        'HOST': os.getenv("DB_HOST"),
+        'PORT': os.getenv("DB_PORT"), 
+
     }
 }
 
@@ -164,7 +169,8 @@ EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = '{} <{}>'.format(os.getenv("FROM_EMAIL"),EMAIL_HOST_USER)
 
 # email varification settings
-LOGIN_URL = f'http://{HOSTNAME}:{PORT_FRONTEND}/'
+# LOGIN_URL = f'http://{HOSTNAME}:{PORT_FRONTEND}/'
+LOGIN_URL = f'http://{HOSTNAME}/'
 VERIFICATION_SUCCESS_TEMPLATE = None
 HTML_MESSAGE_TEMPLATE = 'email_verification_msg.html'
 
