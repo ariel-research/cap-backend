@@ -64,7 +64,7 @@ class RegisterView(viewsets.ModelViewSet):
                 student_user = send_verification_email(request, form )
                 print("email sent")
                 Token.objects.create(user=student_user)
-                office = 1
+                office = Office.objects.get(office_id=1)
                 """if user_type == "student":
                     office = Office.objects.get(office_id=1)
                 else:
