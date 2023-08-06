@@ -38,3 +38,4 @@ gmail account
 	    2. Open `http://<your-hostname>:<port-number>/admin/` in a web browser to view your application.
 12. Insert your super user information has been created for Django.
 13. Now you can examine the database.
+14. Optional: for running Django with Gunicorn (and React app with Nginx) follow [this](https://austinogiza.medium.com/deploying-react-and-django-rest-framework-with-nginx-and-gunicorn-7a0553459500) guide.
