@@ -6,7 +6,7 @@ from datetime import timedelta, datetime, date
 from rest_framework import viewsets, status
 from django.utils import timezone
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Course, Course_group, Student, Ranking, Result, Office
@@ -87,14 +87,7 @@ class RegisterView(viewsets.ModelViewSet):
             if form['password2'].errors:
                 return Response({'message': form['password2'].errors}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'error': str(form.errors)}, status=status.HTTP_400_BAD_REQUEST)
-                
-
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = (AllowAny,)
-    authentication_classes = (TokenAuthentication,)
-    
+        
     @action(detail=False, methods=['GET'])
     def get_user_status(self, request):
         print(request.query_params.get('username'))
@@ -102,13 +95,20 @@ class UserViewSet(viewsets.ModelViewSet):
             username= request.query_params.get('username')
             if not User.objects.filter(username = username).exists():
                 return Response({'error': 'חשבון לא קיים'}, status=status.HTTP_404_NOT_FOUND)
-            elif self.queryset.get(username= username).is_active:
+            elif User.objects.all().get(username= username).is_active:
                 return Response({'message': 'אימייל או סיסמא שגויים'}, status=status.HTTP_401_UNAUTHORIZED)
             else:
                 return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_409_CONFLICT)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
+                
+
+class UserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    permission_classes = (AllowAny,)
+    authentication_classes = (TokenAuthentication,)
+    queryset= User.objects.all()
     
     @action(detail=False, methods=['GET'])
     def get_user_details(self, request):
@@ -522,6 +522,7 @@ class RankingViewSet(viewsets.ModelViewSet):
     def rank_courses(self, request):
         user = request.user
         student = Student.objects.get(user=user)
+        is_included = request.data['is_included']
         ranking = request.data['ranks']
         is_positive = 1000 - sum(rank['score'] for rank in ranking)
         if is_positive < 0:
@@ -530,7 +531,7 @@ class RankingViewSet(viewsets.ModelViewSet):
         for rank_pair in ranking:
             course = Course.objects.get(course_id=rank_pair['id'])
             obj, created = Ranking.objects.update_or_create(
-                course=course, student=student,
+                course=course, student=student, is_included=is_included,
                 defaults={ 'rank': rank_pair['score']},
             )
             logging.debug(f'course {course.course_id} created: {created} rank_pair: {rank_pair}')

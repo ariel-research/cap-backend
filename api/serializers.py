@@ -99,7 +99,7 @@ class RankingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ranking
-        fields = ['id', 'rank', 'student', 'course']
+        fields = ['id', 'rank', 'student', 'course','is_included']
 
 
 class RankingMiniSerializer(serializers.Serializer):
@@ -112,6 +112,7 @@ class RankingMiniSerializer(serializers.Serializer):
     time_start = serializers.CharField(max_length=70)
     time_end = serializers.CharField(max_length=70)
     id = serializers.CharField(max_length=70)
+    is_included = serializers.BooleanField()
 
 
 class ResultSerializer(serializers.ModelSerializer):

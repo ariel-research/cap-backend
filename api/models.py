@@ -60,7 +60,7 @@ class Ranking(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     rank = models.IntegerField()
-
+    is_included = models.BooleanField(null=True,blank=False,default=True)
     class Meta:
         unique_together = (('course', 'student'),)
         index_together = (('course', 'student'),)

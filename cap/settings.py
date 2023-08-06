@@ -17,6 +17,7 @@ import os
 load_dotenv()
 HOSTNAME = os.getenv("HOSTNAME")
 PORT_FRONTEND = os.getenv("PORT_FRONTEND")
+DOMAIN = os.getenv("DOMAIN")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,7 +31,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [HOSTNAME]
+ALLOWED_HOSTS = [HOSTNAME,DOMAIN]
 
 
 # Application definition
@@ -68,7 +69,8 @@ ROOT_URLCONF = 'cap.urls'
 
 CORS_ALLOWED_ORIGINS = [
     f'http://{HOSTNAME}:{PORT_FRONTEND}',
-    f'http://{HOSTNAME}'
+    f'http://{HOSTNAME}',
+    f'https://{DOMAIN}'
 ]
 
 TEMPLATES = [
@@ -170,7 +172,7 @@ DEFAULT_FROM_EMAIL = '{} <{}>'.format(os.getenv("FROM_EMAIL"),EMAIL_HOST_USER)
 
 # email varification settings
 # LOGIN_URL = f'http://{HOSTNAME}:{PORT_FRONTEND}/'
-LOGIN_URL = f'http://{HOSTNAME}/'
+LOGIN_URL = f'https://{DOMAIN}/'
 VERIFICATION_SUCCESS_TEMPLATE = None
 HTML_MESSAGE_TEMPLATE = 'email_verification_msg.html'
 
