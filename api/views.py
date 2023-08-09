@@ -220,14 +220,14 @@ class Course_groupViewSet(viewsets.ModelViewSet):
             .filter(course__course_group__office=student_office).order_by('rank')
         student_serializer = StudentSerializer(student, many=False)
         student_courses = student_serializer.data['courses']
-        if len(ranking) == 0:  # the user not rank his courses
-            courses = Course.objects.filter(course_group__is_elective=True) \
-                .filter(course_group__office=student_office)
-            default_ranking = []
-            for course in courses:
+        courses = Course.objects.filter(course_group__is_elective=True).filter(course_group__office=student_office)
+        default_ranking = []
+        user_ranking = []
+        for course in courses:
+            if not Ranking.objects.filter(student=student, course=course).exists():
                 rank = {"name": course.course_group.name, "lecturer": course.lecturer, "semester": course.Semester,
                         "day": course.day, "time_start": course.time_start, "time_end": course.time_end, "score": 0,
-                        "id": course.course_id, 'overlap': False}
+                        "id": course.course_id, 'overlap': False, "is_acceptable": True}
                 for mandatory in student_courses:
                     mandatory_start = datetime.strptime(mandatory['time_start'], '%H:%M:%S').time()
                     mandatory_end = datetime.strptime(mandatory['time_end'], '%H:%M:%S').time()
@@ -239,13 +239,12 @@ class Course_groupViewSet(viewsets.ModelViewSet):
                         elif course.time_start == mandatory_start and mandatory_end == course.time_end:
                             rank['overlap'] = True
                 default_ranking.append(rank)
-            return Response(default_ranking, status=status.HTTP_200_OK)
-        else:  # the user rank his courses, show his last rank
-            user_ranking = []
-            for rank in ranking:
+            else:  # the user rank his courses, show his last rank
+                rank = Ranking.objects.get(student=student,course=course)
                 course_ser = {"name": rank.course.course_group.name, "lecturer": rank.course.lecturer,
                         "semester": rank.course.Semester, "day": rank.course.day, "time_start": rank.course.time_start,
-                        "time_end": rank.course.time_end, "score": rank.rank, "id": rank.course.course_id, "overlap":False}
+                        "time_end": rank.course.time_end, "score": rank.rank, "id": rank.course.course_id,
+                        "overlap":False, "is_acceptable": rank.is_acceptable}
                 for mandatory in student_courses:
                     mandatory_start = datetime.strptime(mandatory['time_start'], '%H:%M:%S').time()
                     mandatory_end = datetime.strptime(mandatory['time_end'], '%H:%M:%S').time()
@@ -257,9 +256,11 @@ class Course_groupViewSet(viewsets.ModelViewSet):
                         elif rank.course.time_start == mandatory_start and mandatory_end == rank.course.time_end:
                             course_ser['overlap'] = True
                 user_ranking.append(course_ser)
-            user_ranking.sort(key=take_score, reverse=True)
-            serializer = RankingMiniSerializer(user_ranking, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        user_ranking.sort(key=take_score, reverse=True)
+        user_courses = user_ranking + default_ranking
+        user_courses.sort(key=lambda x: not x['is_acceptable'])
+        serializer = RankingMiniSerializer(user_courses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def list(self, request, *args, **kwargs):
         response = {'message': 'לא ניתן לקבל קבוצות קורסים באופן זה'}
@@ -286,23 +287,21 @@ class CourseViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 for course in courses:
-                    try:
-                        course_group = Course_group.objects.get(name=course['name'],office=office)
-                        Course.objects.create(course_id=course['id'], Semester=course['semester'],
-                                              lecturer=course['lecturer'],
-                                              day=course['day'], capacity=course['capacity'],
-                                              time_start=course['start_time'],
-                                              time_end=course['end_time'], course_group=course_group
-                                              )
-                    except Course_group.DoesNotExist:
-                        course_group = Course_group.objects.create(name=course['name'],
-                                                                   is_elective=course['is_elective'], office=office,
-                                                                   groups=1)
-                        Course.objects.create(course_id=course['id'], Semester=course['semester'],
-                                              lecturer=course['lecturer'],
-                                              day=course['day'], capacity=course['capacity'],
-                                              time_start=course['start_time'],
-                                              time_end=course['end_time'], course_group=course_group)
+                    course_group_obj, course_group_created = Course_group.objects.update_or_create(
+                            name=course['name'],office=office,
+                            defaults={ 'name': course['name'],'is_elective': course['is_elective'],
+                            'office': office, 'groups':1},
+                        )
+
+                    course_obj, course_created = Course.objects.update_or_create(
+                        course_id=course['id'], 
+                        defaults={ 'Semester': course['semester'],
+                        'lecturer': course['lecturer'],
+                        'day': course['day'], 'capacity': course['capacity'],
+                        'time_start': course['start_time'],
+                        'time_end': course['end_time'], 'course_group': course_group_obj}
+                    )
+                    
                 return Response("הקורסים נוצרו", status=status.HTTP_201_CREATED)
 
 
@@ -522,7 +521,6 @@ class RankingViewSet(viewsets.ModelViewSet):
     def rank_courses(self, request):
         user = request.user
         student = Student.objects.get(user=user)
-        is_included = request.data['is_included']
         ranking = request.data['ranks']
         is_positive = 1000 - sum(rank['score'] for rank in ranking)
         if is_positive < 0:
@@ -531,8 +529,8 @@ class RankingViewSet(viewsets.ModelViewSet):
         for rank_pair in ranking:
             course = Course.objects.get(course_id=rank_pair['id'])
             obj, created = Ranking.objects.update_or_create(
-                course=course, student=student, is_included=is_included,
-                defaults={ 'rank': rank_pair['score']},
+                course=course, student=student,
+                defaults={ 'rank': rank_pair['score'],'is_acceptable':rank_pair['is_acceptable']},
             )
             logging.debug(f'course {course.course_id} created: {created} rank_pair: {rank_pair}')
         return Response('Ranking created', status=status.HTTP_200_OK)
