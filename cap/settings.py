@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [HOSTNAME,DOMAIN]
+ALLOWED_HOSTS = [HOSTNAME,DOMAIN,'localhost']
 
 
 # Application definition
@@ -70,7 +70,8 @@ ROOT_URLCONF = 'cap.urls'
 CORS_ALLOWED_ORIGINS = [
     f'http://{HOSTNAME}:{PORT_FRONTEND}',
     f'http://{HOSTNAME}',
-    f'https://{DOMAIN}'
+    f'https://{DOMAIN}',
+    f'http://localhost:3000',
 ]
 
 TEMPLATES = [

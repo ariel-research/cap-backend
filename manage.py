@@ -2,11 +2,18 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from dotenv import load_dotenv
 
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cap.settings')
+    load_dotenv()
+    MODE = os.getenv("MODE")
+    if MODE == "DEV":
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cap.settings_development')
+    else:
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cap.settings')
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
