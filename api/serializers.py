@@ -37,9 +37,14 @@ class UserSerializer(serializers.ModelSerializer):
         )
         #user.set_password(validated_data['password'])
         #return user
+        
+class Course_groupMiniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course_group
+        fields = ['id', 'name']
 
 class CourseSerializer(serializers.ModelSerializer):
-    course_group = serializers.StringRelatedField()
+    course_group = Course_groupMiniSerializer()
 
     class Meta:
         model = Course
@@ -59,11 +64,6 @@ class Course_groupSerializer(serializers.ModelSerializer):
         model = Course_group
         fields = ['id', 'name', 'is_elective', 'office', 'courses']
 
-
-class Course_groupMiniSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Course_group
-        fields = ['id', 'name']
 
 class StudentSerializer(serializers.ModelSerializer):
     courses = CourseSerializer(many=True)
@@ -99,7 +99,7 @@ class RankingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ranking
-        fields = ['id', 'rank', 'student', 'course','is_included']
+        fields = ['id', 'rank', 'student', 'course','is_acceptable']
 
 
 class RankingMiniSerializer(serializers.Serializer):
@@ -112,7 +112,7 @@ class RankingMiniSerializer(serializers.Serializer):
     time_start = serializers.CharField(max_length=70)
     time_end = serializers.CharField(max_length=70)
     id = serializers.CharField(max_length=70)
-    is_included = serializers.BooleanField()
+    is_acceptable = serializers.BooleanField()
 
 
 class ResultSerializer(serializers.ModelSerializer):
