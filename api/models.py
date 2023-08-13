@@ -27,7 +27,6 @@ class Course_group(models.Model):
     def __str__(self):
         return f'{self.name}-{self.office}'
 
-
 class Course(models.Model):
     Days = (('א', 'א'), ('ב', 'ב'), ('ג', 'ג'), ('ד', 'ד'), ('ה', 'ה'), ('ו', 'ו'))
     Semester_choices = (('א', 'א'), ('ב', 'ב'), ('ק', 'ק'))
@@ -44,6 +43,21 @@ class Course(models.Model):
     def __str__(self):
         return f'{self.course_id}/{self.course_group}'
 
+
+class Course_time(models.Model):
+    day_choises = (('א', 'א'), ('ב', 'ב'), ('ג', 'ג'), ('ד', 'ד'), ('ה', 'ה'), ('ו', 'ו'))
+    """class Class_Type(models.TextChoices):
+        SPLIT = "1", "המשך"
+        EXERCISE = "2", "תרגול"""
+    class_type_choises = (('המשך', 'המשך'), ('תרגול', 'תרגול'))
+    day = models.CharField(null=True, blank=False, max_length=5, choices=day_choises)
+    time_start = models.TimeField()
+    time_end = models.TimeField()
+    class_type = models.CharField(null=True, blank=False, max_length=5,choices=class_type_choises, default='המשך')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.id}-{self.course}'
     
 class Student(models.Model):
     class Program(models.TextChoices):

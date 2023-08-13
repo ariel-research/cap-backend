@@ -1,7 +1,7 @@
 from abc import ABC
 
 from rest_framework import serializers
-from .models import Course, Course_group, Student, Ranking, Result, Office
+from .models import Course, Course_group, Student, Ranking, Result, Office, Course_time
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework import serializers
@@ -48,8 +48,14 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course
-        fields = ['course_id', 'Semester', 'lecturer', 'capacity', 'day', 'time_start', 'time_end', 'course_group']
+        fields = ['id','course_id', 'Semester', 'lecturer', 'capacity', 'day', 'time_start', 'time_end', 'course_group']
 
+class Course_timeSerializer(serializers.ModelSerializer):
+    course = CourseSerializer()
+
+    class Meta:
+        model = Course_time
+        fields = ['day','time_start','time_end','class_type','course']
 
 class CourseMiniSerializer(serializers.ModelSerializer):
     class Meta:
@@ -113,7 +119,7 @@ class RankingMiniSerializer(serializers.Serializer):
     time_end = serializers.CharField(max_length=70)
     id = serializers.CharField(max_length=70)
     is_acceptable = serializers.BooleanField()
-
+    course_time = Course_timeSerializer(many=True)
 
 class ResultSerializer(serializers.ModelSerializer):
     class Meta:

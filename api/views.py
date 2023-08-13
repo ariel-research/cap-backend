@@ -9,12 +9,12 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Course, Course_group, Student, Ranking, Result, Office
+from .models import Course, Course_group, Student, Ranking, Result, Office, Course_time
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from .serializers import CourseSerializer, Course_groupSerializer, CourseMiniSerializer, StudentSerializer, \
     RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer, StudentMiniSerializer, \
-    StudentUserSerializer
+    StudentUserSerializer, Course_timeSerializer
 from api.SP_algorithm.main import main
 from verify_email.email_handler import send_verification_email
 from .signals import password_reset_token_created
@@ -224,10 +224,15 @@ class Course_groupViewSet(viewsets.ModelViewSet):
         default_ranking = []
         user_ranking = []
         for course in courses:
+            course_time =  Course_time.objects.filter(course=course.id)
+            course_time_serializer = Course_timeSerializer(course_time,many=True)
+            logging.debug(course_time_serializer.data if course_time_serializer else False)
             if not Ranking.objects.filter(student=student, course=course).exists():
                 rank = {"name": course.course_group.name, "lecturer": course.lecturer, "semester": course.Semester,
                         "day": course.day, "time_start": course.time_start, "time_end": course.time_end, "score": 0,
-                        "id": course.course_id, 'overlap': False, "is_acceptable": True}
+                        "id": course.course_id, 'overlap': False, "is_acceptable": True, "course_time":course_time_serializer.data}
+                
+
                 for mandatory in student_courses:
                     mandatory_start = datetime.strptime(mandatory['time_start'], '%H:%M:%S').time()
                     mandatory_end = datetime.strptime(mandatory['time_end'], '%H:%M:%S').time()
@@ -244,7 +249,7 @@ class Course_groupViewSet(viewsets.ModelViewSet):
                 course_ser = {"name": rank.course.course_group.name, "lecturer": rank.course.lecturer,
                         "semester": rank.course.Semester, "day": rank.course.day, "time_start": rank.course.time_start,
                         "time_end": rank.course.time_end, "score": rank.rank, "id": rank.course.course_id,
-                        "overlap":False, "is_acceptable": rank.is_acceptable}
+                        "overlap":False, "is_acceptable": rank.is_acceptable,"course_time":course_time_serializer.data}
                 for mandatory in student_courses:
                     mandatory_start = datetime.strptime(mandatory['time_start'], '%H:%M:%S').time()
                     mandatory_end = datetime.strptime(mandatory['time_end'], '%H:%M:%S').time()
@@ -330,30 +335,44 @@ class CourseViewSet(viewsets.ModelViewSet):
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []],
                               [[], [], [], [], [], []], [[], [], [], [], [], []], [[], [], [], [], [], []]]
-
+        days = {'א': 0, 'ב':1, 'ג':2, 'ד': 3, 'ה': 4, 'ו':5}
+        #day_choises = (('א', 0), ('ב', 1), ('ג', 2), ('ד', 3), ('ה', 4), ('ו', 5))
+        HOUR_OPTIONS = 14 
         for course in serializer:
+            course_time =  Course_time.objects.filter(course=course['id'])
+            if course_time:
+                time_serializer = Course_timeSerializer(course_time, many=True)
+                for time in time_serializer.data:
+                    logging.debug(time['day'])
+                    time_start = datetime.strptime(time['time_start'], '%H:%M:%S').time()
+                    time_end = datetime.strptime(time['time_end'], '%H:%M:%S').time()
+                    class_type = time['class_type']
+                    logging.debug(class_type)
+                    for i in range(HOUR_OPTIONS):
+                        start_hour = i + 8
+                        start_table = '0' + str(start_hour) + ':00'
+                        if start_hour > 9:
+                            start_table = str(start_hour) + ':00'
+                        if time_start == datetime.strptime(start_table, '%H:%M').time():
+                            day = time['day']
+                            course_freg = collections.OrderedDict(course)
+                            course_freg['class_type'] = class_type
+                            courses_semester[i][days[day]].append(course_freg)
+
+
+                
             time_start = datetime.strptime(course['time_start'], '%H:%M:%S').time()
             time_end = datetime.strptime(course['time_end'], '%H:%M:%S').time()
             duration = str(datetime.combine(date.today(), time_end) - datetime.combine(date.today(), time_start))
             course['duration'] = duration[0]
-            for i in range(14):
+            for i in range(HOUR_OPTIONS):
                 start_hour = i + 8
                 start_table = '0' + str(start_hour) + ':00'
                 if start_hour > 9:
                     start_table = str(start_hour) + ':00'
                 if time_start == datetime.strptime(start_table, '%H:%M').time():
-                    if course['day'] == 'א':
-                        courses_semester[i][0].append(course)
-                    if course['day'] == 'ב':
-                        courses_semester[i][1].append(course)
-                    if course['day'] == 'ג':
-                        courses_semester[i][2].append(course)
-                    if course['day'] == 'ד':
-                        courses_semester[i][3].append(course)
-                    if course['day'] == 'ה':
-                        courses_semester[i][4].append(course)
-                    if course['day'] == 'ו':
-                        courses_semester[i][5].append(course)
+                    day = course['day']
+                    courses_semester[i][days[day]].append(course)
         return Response(courses_semester, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'])
@@ -440,18 +459,20 @@ class OfficeViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'])
     def get_time(self, request):
         tz_now = timezone.localtime(timezone.now())
+        logging.debug(tz_now)
         user = request.user
         office = Student.objects.get(user=user).office
-        start_time = office.start_time
-        end_time = office.end_time
+        start_time = office.start_time.astimezone(pytz.timezone('Asia/Jerusalem'))
+        end_time = office.end_time.astimezone(pytz.timezone('Asia/Jerusalem'))
+        logging.debug(str(start_time),str(end_time))
         # if the ranking time has not started
-        if office.start_time > tz_now + timedelta(hours=3):
+        if office.start_time > tz_now:
             timestamp_str = start_time.strftime(" %d/%m") + " בשעה " + start_time.strftime(" %H:%M ")
             text = 'הדירוג יפתח ב: ' + timestamp_str
             response = {'message': text, 'value': 0}
             return Response(response, status=status.HTTP_200_OK)
         # if the ranking ended
-        if end_time < tz_now + timedelta(hours=3):
+        if end_time < tz_now:
             response = {'message': 'הדירוג נסגר', 'value': 0}
             return Response(response, status=status.HTTP_200_OK)
         # if this is the ranking time
