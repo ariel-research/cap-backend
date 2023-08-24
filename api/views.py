@@ -297,7 +297,8 @@ class Course_groupViewSet(viewsets.ModelViewSet):
             if not Ranking.objects.filter(student=student, course=course).exists():
                 rank = {"name": course.course_group.name, "lecturer": course.lecturer, "semester": course.Semester,
                         "day": course.day, "time_start": course.time_start, "time_end": course.time_end, "score": 0,
-                        "id": course.course_id, 'overlap': False, "is_acceptable": True, "course_time":course_time_serializer.data}
+                        "id": course.course_id, 'overlap': False, "is_acceptable": True, "course_time":course_time_serializer.data,
+                        "result": False}
                 
 
                 for mandatory in student_courses:
@@ -316,7 +317,8 @@ class Course_groupViewSet(viewsets.ModelViewSet):
                 course_ser = {"name": rank.course.course_group.name, "lecturer": rank.course.lecturer,
                         "semester": rank.course.Semester, "day": rank.course.day, "time_start": rank.course.time_start,
                         "time_end": rank.course.time_end, "score": rank.rank, "id": rank.course.course_id,
-                        "overlap":False, "is_acceptable": rank.is_acceptable,"course_time":course_time_serializer.data}
+                        "overlap":False, "is_acceptable": rank.is_acceptable,"course_time":course_time_serializer.data,
+                        "result": rank.result}
                 for mandatory in student_courses:
                     mandatory_start = datetime.strptime(mandatory['time_start'], '%H:%M:%S').time()
                     mandatory_end = datetime.strptime(mandatory['time_end'], '%H:%M:%S').time()
@@ -604,7 +606,7 @@ class RankingViewSet(viewsets.ModelViewSet):
     serializer_class = RankingSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-
+    
     @action(detail=False, methods=['POST'])
     def rank_courses(self, request):
         user = request.user
@@ -630,7 +632,16 @@ class RankingViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         response = {'message': 'לא ניתן ליצור דירוג באופן זה'}
         return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
+    
+    @action(detail=False, methods=['POST'])
+    def save_results_feedback(self, request):
+        user = request.user
+        student = Student.objects.get(user=user)
+        ranking = request.data['ranks']
+        for rank_pair in ranking:
+            course = Course.objects.get(course_id=rank_pair['id'])
+            Ranking.objects.filter(course_id=course, student=student).update(result=rank_pair['result'])
+        return Response('המשוב נשמר בהצלחה', status=status.HTTP_200_OK)
 
 class ResultViewSet(viewsets.ModelViewSet):
     queryset = Result.objects.all()
