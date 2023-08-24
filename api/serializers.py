@@ -118,7 +118,7 @@ class RankingMiniSerializer(serializers.Serializer):
     time_end = serializers.CharField(max_length=70)
     id = serializers.CharField(max_length=70)
     is_acceptable = serializers.BooleanField()
-    result = serializers.BooleanField()
+    result = serializers.BooleanField(required=False,default=False)
     course_time = Course_timeSerializer(many=True)
 
 class ResultSerializer(serializers.ModelSerializer):
