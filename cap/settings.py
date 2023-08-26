@@ -29,9 +29,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [HOSTNAME,DOMAIN,'localhost']
+
+ADMINS = [('admin', 'ariel.research23@gmail.com')]
 
 
 # Application definition
@@ -159,6 +161,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 NOSE_ARGS = ['--nocapture',
              '--nologcapture',]
+
+
+# Detect Django errors
+
 
 
 # For Django Email Backend
