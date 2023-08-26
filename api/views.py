@@ -542,7 +542,7 @@ class OfficeViewSet(viewsets.ModelViewSet):
             return Response(response, status=status.HTTP_200_OK)
         # if the ranking ended
         if end_time < tz_now:
-            response = {'message': 'הדירוג נסגר', 'value': 0}
+            response = {'message': 'הדירוג נסגר', 'value': 0, 'feedback': True}
             return Response(response, status=status.HTTP_200_OK)
         # if this is the ranking time
         timestamp_str = end_time.strftime(" %d/%m") + " בשעה " + end_time.strftime(" %H:%M ")
