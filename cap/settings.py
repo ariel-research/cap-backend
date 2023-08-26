@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'import_export',
     "verify_email.apps.VerifyEmailConfig",
     'django_rest_passwordreset',
+    'rest_registration',
 
 ]
 
@@ -115,11 +116,30 @@ REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
 
     ),
+}
+
+REST_REGISTRATION = {
+    'REGISTER_VERIFICATION_URL': 'http://localhost:3000/verify-user/',
+    'RESET_PASSWORD_VERIFICATION_URL': 'http://localhost:3000/reset-password/',
+    'REGISTER_EMAIL_VERIFICATION_URL': 'http://localhost:3000/verify-email/',
+    'LOGIN_RETRIEVE_TOKEN': True,
+    'VERIFICATION_FROM_EMAIL': 'ariel.research23@gmail.com',
+    'REGISTER_VERIFICATION_EMAIL_TEMPLATES': {
+        'subject':  'verify_email/email_verification_subject.txt',
+        'html_body':  'verify_email/email_verification_msg.html'
+    },
+       'RESET_PASSWORD_VERIFICATION_EMAIL_TEMPLATES': {
+        'subject':  'reset_password/user_reset_password.txt',
+        'html_body':  'reset_password/user_reset_password.html'
+    },
+
 }
 
 # Password validation
@@ -176,18 +196,3 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 DEFAULT_FROM_EMAIL = '{} <{}>'.format(os.getenv("FROM_EMAIL"),EMAIL_HOST_USER)
-
-# email varification settings
-# LOGIN_URL = f'http://{HOSTNAME}:{PORT_FRONTEND}/'
-LOGIN_URL = f'https://{DOMAIN}/'
-VERIFICATION_SUCCESS_TEMPLATE = None
-HTML_MESSAGE_TEMPLATE = 'email_verification_msg.html'
-
-# password reset settings
-DJANGO_REST_PASSWORDRESET_TOKEN_CONFIG = {
-    "CLASS": "django_rest_passwordreset.tokens.RandomNumberTokenGenerator",
-    "OPTIONS": {
-        "min_number": 1500,
-        "max_number": 9999
-    }
-}

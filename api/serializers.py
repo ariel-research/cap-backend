@@ -6,7 +6,6 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework import serializers
 
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -105,7 +104,7 @@ class RankingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ranking
-        fields = ['id', 'rank', 'student', 'course','is_acceptable']
+        fields = ['id', 'rank', 'student', 'course','is_acceptable', 'result']
 
 
 class RankingMiniSerializer(serializers.Serializer):
@@ -119,6 +118,7 @@ class RankingMiniSerializer(serializers.Serializer):
     time_end = serializers.CharField(max_length=70)
     id = serializers.CharField(max_length=70)
     is_acceptable = serializers.BooleanField()
+    result = serializers.BooleanField(required=False,default=False)
     course_time = Course_timeSerializer(many=True)
 
 class ResultSerializer(serializers.ModelSerializer):

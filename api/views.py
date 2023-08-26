@@ -20,11 +20,9 @@ from verify_email.email_handler import send_verification_email
 from .signals import password_reset_token_created
 from .forms import RegitrationForm, StudentForm
 import logging
-
 from django.contrib.auth import get_user_model
-# take second element for sort
-def take_score(elem):
-    return elem.get("score")
+
+
 
 class RegisterView(viewsets.ModelViewSet):
     serializer_class = UserSerializer
@@ -45,7 +43,33 @@ class RegisterView(viewsets.ModelViewSet):
                 print(e)
                 return Response({'message': 'אירעה שגיאה במהלך שליחת קוד איפוס סיסמא','status':-1}, status=status.HTTP_400_BAD_REQUEST)
 
-
+    @action(detail=False, methods=['POST'])
+    def register_student(self, request):
+        user_id = request.data.get('user_id')
+        amount_elective= request.data.get('amount_elective')
+        student_id =  request.data.get('student_id')
+        program = request.data.get('program')
+        student_form =StudentForm(request.data)
+        if student_form.is_valid():
+            print("valid form")
+            try:
+                student_user = User.objects.get(id = user_id)
+                print("email sent")
+                Token.objects.create(user=student_user)
+                office = Office.objects.get(office_id=1)
+                """if user_type == "student":
+                    office = Office.objects.get(office_id=1)
+                else:
+                    office = Office.objects.get(office_id=2)"""
+                Student.objects.create(user=student_user, student_id=student_id, amount_elective=amount_elective, program=program,office=office)
+                return Response({'message': 'קישור לאימות חשבונך נשלח לכתובת האימייל שהזנת (בדקו בספאם)'}, status=status.HTTP_202_ACCEPTED)                    
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            if student_form['student_id'].errors:
+                return Response({'message': 'מספר ת.ז בשימוש'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': str(student_form.errors)}, status=status.HTTP_400_BAD_REQUEST)
+        
     @action(detail=False, methods=['POST'])
     def post(self, request):
         email = request.data.get('email')
@@ -56,8 +80,8 @@ class RegisterView(viewsets.ModelViewSet):
         print(email)
         request.data["username"]=email
         form = RegitrationForm(request.data)
-        student_from =StudentForm(request.data)
-        if form.is_valid() and student_from.is_valid():
+        student_form =StudentForm(request.data)
+        if form.is_valid() and student_form.is_valid():
             print("valid form")
             try:
                 
@@ -82,12 +106,55 @@ class RegisterView(viewsets.ModelViewSet):
                 else:
                     print("inactive")
                     return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_409_CONFLICT)
-            if student_from['student_id'].errors:
+            if student_form['student_id'].errors:
+                return Response({'message': 'מספר ת.ז בשימוש'}, status=status.HTTP_400_BAD_REQUEST)
+            if form['password2'].errors:
+                return Response({'message': form['password2'].errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': str(form.errors)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['POST'])
+    def register(self, request):
+        email = request.data.get('email')
+        amount_elective= request.data.get('amount_elective')
+        #user_type =  request.data.get('user_type')
+        student_id =  request.data.get('student_id')
+        program = request.data.get('program')
+        print(email)
+        request.data["username"]=email
+        form = RegitrationForm(request.data)
+        student_form =StudentForm(request.data)
+        if form.is_valid() and student_form.is_valid():
+            print("valid form")
+            try:
+                
+                student_user = send_verification_email(request, form )
+                print("email sent")
+                Token.objects.create(user=student_user)
+                office = Office.objects.get(office_id=1)
+                """if user_type == "student":
+                    office = Office.objects.get(office_id=1)
+                else:
+                    office = Office.objects.get(office_id=2)"""
+                Student.objects.create(user=student_user, student_id=student_id, amount_elective=amount_elective,office=office)
+                return Response({'message': 'קישור לאימות חשבונך נשלח לכתובת האימייל שהזנת (בדקו בספאם)'}, status=status.HTTP_202_ACCEPTED)                    
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            if form['username'].errors:
+                student = User.objects.get(email=email)
+                if student.is_active:
+                    print("active")
+                    return Response({'message': 'חשבון קיים'}, status=status.HTTP_409_CONFLICT)
+                else:
+                    print("inactive")
+                    return Response({'message': 'נרשמת בעבר אך לא אימתת את חשבונך'}, status=status.HTTP_409_CONFLICT)
+            if student_form['student_id'].errors:
                 return Response({'message': 'מספר ת.ז בשימוש'}, status=status.HTTP_400_BAD_REQUEST)
             if form['password2'].errors:
                 return Response({'message': form['password2'].errors}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'error': str(form.errors)}, status=status.HTTP_400_BAD_REQUEST)
         
+
     @action(detail=False, methods=['GET'])
     def get_user_status(self, request):
         print(request.query_params.get('username'))
@@ -230,7 +297,8 @@ class Course_groupViewSet(viewsets.ModelViewSet):
             if not Ranking.objects.filter(student=student, course=course).exists():
                 rank = {"name": course.course_group.name, "lecturer": course.lecturer, "semester": course.Semester,
                         "day": course.day, "time_start": course.time_start, "time_end": course.time_end, "score": 0,
-                        "id": course.course_id, 'overlap': False, "is_acceptable": True, "course_time":course_time_serializer.data}
+                        "id": course.course_id, 'overlap': False, "is_acceptable": True, "course_time":course_time_serializer.data,
+                        "result": False}
                 
 
                 for mandatory in student_courses:
@@ -249,7 +317,8 @@ class Course_groupViewSet(viewsets.ModelViewSet):
                 course_ser = {"name": rank.course.course_group.name, "lecturer": rank.course.lecturer,
                         "semester": rank.course.Semester, "day": rank.course.day, "time_start": rank.course.time_start,
                         "time_end": rank.course.time_end, "score": rank.rank, "id": rank.course.course_id,
-                        "overlap":False, "is_acceptable": rank.is_acceptable,"course_time":course_time_serializer.data}
+                        "overlap":False, "is_acceptable": rank.is_acceptable,"course_time":course_time_serializer.data,
+                        "result": rank.result}
                 for mandatory in student_courses:
                     mandatory_start = datetime.strptime(mandatory['time_start'], '%H:%M:%S').time()
                     mandatory_end = datetime.strptime(mandatory['time_end'], '%H:%M:%S').time()
@@ -261,7 +330,7 @@ class Course_groupViewSet(viewsets.ModelViewSet):
                         elif rank.course.time_start == mandatory_start and mandatory_end == rank.course.time_end:
                             course_ser['overlap'] = True
                 user_ranking.append(course_ser)
-        user_ranking.sort(key=take_score, reverse=True)
+        user_ranking.sort(key= lambda x: x.get('score'), reverse=True)
         user_courses = user_ranking + default_ranking
         user_courses.sort(key=lambda x: not x['is_acceptable'])
         serializer = RankingMiniSerializer(user_courses, many=True)
@@ -473,7 +542,7 @@ class OfficeViewSet(viewsets.ModelViewSet):
             return Response(response, status=status.HTTP_200_OK)
         # if the ranking ended
         if end_time < tz_now:
-            response = {'message': 'הדירוג נסגר', 'value': 0}
+            response = {'message': 'הדירוג נסגר', 'value': 0, 'feedback': True}
             return Response(response, status=status.HTTP_200_OK)
         # if this is the ranking time
         timestamp_str = end_time.strftime(" %d/%m") + " בשעה " + end_time.strftime(" %H:%M ")
@@ -537,7 +606,7 @@ class RankingViewSet(viewsets.ModelViewSet):
     serializer_class = RankingSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-
+    
     @action(detail=False, methods=['POST'])
     def rank_courses(self, request):
         user = request.user
@@ -563,7 +632,16 @@ class RankingViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         response = {'message': 'לא ניתן ליצור דירוג באופן זה'}
         return Response(response, status=status.HTTP_400_BAD_REQUEST)
-
+    
+    @action(detail=False, methods=['POST'])
+    def save_results_feedback(self, request):
+        user = request.user
+        student = Student.objects.get(user=user)
+        ranking = request.data['ranks']
+        for rank_pair in ranking:
+            course = Course.objects.get(course_id=rank_pair['id'])
+            Ranking.objects.filter(course_id=course, student=student).update(result=rank_pair['result'])
+        return Response('המשוב נשמר בהצלחה', status=status.HTTP_200_OK)
 
 class ResultViewSet(viewsets.ModelViewSet):
     queryset = Result.objects.all()

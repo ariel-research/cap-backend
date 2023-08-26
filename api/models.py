@@ -79,6 +79,7 @@ class Ranking(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     rank = models.IntegerField()
     is_acceptable = models.BooleanField(null=True,blank=False,default=True)
+    result = models.BooleanField(null=True,blank=True,default=False)
     class Meta:
         unique_together = (('course', 'student'),)
         index_together = (('course', 'student'),)

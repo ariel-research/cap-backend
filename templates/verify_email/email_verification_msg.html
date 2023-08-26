@@ -1,14 +1,15 @@
-</body>
 </html>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
     
-    <title>Verify Email address</title>
+    <title>{% if email_already_used %}ניסיון לאימות חשבון בשימוש
+        {% else %}דירוג קורסי בחירה אריאל - אימות חשבון
+        {% endif %}</title>
 
     <style>
         .format-font {
@@ -50,40 +51,38 @@
 
         <div style=" border-radius: 15px;"className='bg-primary'>
             <h1 class="format-font" style="text-align: center; padding: 2px; color:white;">
-                Password Reset
+                אימות חשבון
             </h1>
         </div>
 
-        <h2 class="format-font" style="text-align: center;">דירוג קורסי בחירה אריאל - איפוס סיסמא</h2> <hr className='bg-primary' style=" width:100px">
-
+        <h2 class="format-font" style="text-align: center;">דירוג קורסים אריאל - אימות חשבון</h2> <hr className='bg-primary' style=" width:100px">
+        {% if email_already_used %}
+        התבצע ניסיון להרשם לאתר דירוג קורסי הבחירה באריאל עם כתובת האימייל הזו, אך כבר קיים חשבון המקושר לכתובת זו.
+        {% else %}
         <div class="format-font" style="margin-top: 20px; line-height: 1.5;">
-            <p style="text-align: center; font-weight: bold;">היי {{ first_name }}!</p>
-            שכחת את הסיסמא?
-
-            גם לסטודנטים למדמ"ח זה קורה!
-
-            יצרנו בשבילך קוד מיוחד (לא מהסוג שצריך לדבג),
-
-            מצורף מטה   
+            <p style="text-align: center; font-weight: bold;">צעד נוסף בדרך לסיום התואר!</p>
+            תודה שיצרת חשבון במערכת דירוג הקורסים באונ' אריאל. 
+            להשלמת הרישום יש ללחוץ על הקישור שלהלן על מנת שנוכל לאמת את זהותך כסטודנט באריאל.     
         </div>
-
+        
         <p class="format-font" style="text-align: center; margin-top: 50px;">
-            קוד לאיפוס הסיסמא:
-            <br/><b>{{ reset_password_code }}</b>
-            <hr style="width:50px" className='bg-primary'> 
-            
+            לחיצה על הלינק תוביל לאימות חשבונך: 
+            <hr style="width:50px" className='bg-primary'>
             <div class="format-font" style="text-align: center; margin-top: 30px;" >
-                <!---<a href="{{link}}" class="my-button" >שליחת קוד חדש</a>-->
-               
+                <a href="{{verification_url}}" class="my-button" >אימות</a>
             </div>
             
-            
         </p>
-
+    
+        <p class="format-font" style="margin-top: 50px;">
+           <b>מועד פתיחת הדירוג יקבע ע"פ החלטת המחלקה</b>
+        </p>
+    
         <p class="format-font" style="line-height: 1.5;">
             <b>שמחים לראותך! <br>אין להשיב למייל זה </b>
         </p>
         
+        {% endif %}
     </div>
    
 </body>
