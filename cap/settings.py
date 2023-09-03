@@ -50,8 +50,6 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'import_export',
-    "verify_email.apps.VerifyEmailConfig",
-    'django_rest_passwordreset',
     'rest_registration',
 
 ]
@@ -120,7 +118,7 @@ REST_FRAMEWORK = {
 
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        'rest_framework.permissions.IsAdminUser',
 
     ),
 }
