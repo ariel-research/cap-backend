@@ -103,6 +103,7 @@ class Result(models.Model):
         return '%d מספר קורס: %s %s' % (self.student.student_id, self.course.course_id, self.course.course_group.name)
 
 class Result_info(models.Model):
-    student = models.ForeignKey(Student,on_delete=models.CASCADE,null=False)
+    student = models.OneToOneField(Student,on_delete=models.CASCADE,null=False)
     courses_txt = models.TextField()
     explanation = models.TextField()
+    
