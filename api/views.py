@@ -5,22 +5,20 @@ from django.db import transaction
 from datetime import timedelta, datetime, date
 from rest_framework import viewsets, status
 from django.utils import timezone
+from cap import settings
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Course, Course_group, Student, Ranking, Result, Office, Course_time
+from .models import Course, Course_group, Student, Ranking, Result, Office, Course_time, Result_info
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from .serializers import CourseSerializer, Course_groupSerializer, CourseMiniSerializer, StudentSerializer, \
     RankingSerializer, ResultSerializer, UserSerializer, OfficeSerializer, RankingMiniSerializer, StudentMiniSerializer, \
-    StudentUserSerializer, Course_timeSerializer
+    StudentUserSerializer, Course_timeSerializer, ResultInfoSerializer
 from api.SP_algorithm.main import main
-from verify_email.email_handler import send_verification_email
-from .signals import password_reset_token_created
-from .forms import RegitrationForm, StudentForm
+from .forms import StudentForm
 import logging
-from django.contrib.auth import get_user_model
 
 
 
@@ -122,6 +120,21 @@ class StudentViewSet(viewsets.ModelViewSet):
             return Response({"message":"הפרטים התעדכנו בהצלחה"}, status=status.HTTP_200_OK) 
         except Exception as e:
             return Response({"message":f"{e} השינויים לא נשמרו"}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['GET'])
+    def get_allocation(self, request):
+        user = request.user
+        student = Student.objects.get(user=user)
+        try:
+            
+            with open(settings.MEDIA_ROOT+f'/explanations/allocation.json', "r") as results_file:
+                results = file.read()
+                with open(settings.MEDIA_ROOT+f'/explanations/{student.student_id}.log', "r") as file:
+                    explantion = file.read()
+                return Response(explantion, status=status.HTTP_200_OK)
+        except FileNotFoundError as e:
+                return Response({'error':str(e)}, status=status.HTTP_404_NOT_FOUND)
+
 
 
 
@@ -355,6 +368,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         return self.get_semester(request,'ק')
 
 
+
 class OfficeViewSet(viewsets.ModelViewSet):
     queryset = Office.objects.all()
     serializer_class = OfficeSerializer
@@ -554,6 +568,8 @@ class RankingViewSet(viewsets.ModelViewSet):
         self.logger.info(f'The user {user} update a feedback')
         return Response('המשוב נשמר בהצלחה', status=status.HTTP_200_OK)
 
+    
+
 class ResultViewSet(viewsets.ModelViewSet):
     queryset = Result.objects.all()
     serializer_class = ResultSerializer
@@ -578,3 +594,26 @@ class ResultViewSet(viewsets.ModelViewSet):
                     course['rank'] = index+1
         newlist = sorted(serializer.data, key=lambda k: k['rank'])
         return Response(newlist, status=status.HTTP_200_OK)
+    
+    
+    @action(detail=False, methods=['GET'])
+    def get_results_info(self, request):
+        user = request.user
+        student = Student.objects.get(user=user)
+        """results = ''
+        explantion = ''
+        if not Result.objects.filter(student=student).exists:
+            try:
+                with open(settings.MEDIA_ROOT+f'/explanations/allocation.json', "r") as results_file:
+                    results = file.read()
+                    with open(settings.MEDIA_ROOT+f'/explanations/{student.student_id}.log', "r") as file:
+                        explantion = file.read()
+            except FileNotFoundError as e:
+                    return Response({'error':str(e)}, status=status.HTTP_404_NOT_FOUND)
+        """
+        result = Result_info.objects.get(student=student)
+        result_serizalizer = ResultInfoSerializer(result)
+        return Response({'courses_txt':result_serizalizer.data['courses_txt'],'explanation':result_serizalizer.data['explanation']},
+                        status=status.HTTP_200_OK)
+
+

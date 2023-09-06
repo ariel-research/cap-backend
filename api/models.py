@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import User
+from django.conf import settings
 
 class Office(models.Model):
     office_id = models.CharField(unique=True, max_length=32)
@@ -70,6 +71,7 @@ class Student(models.Model):
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="students", default=1)
     courses = models.ManyToManyField(Course,blank=True)
     program = models.CharField(max_length=2,choices=Program.choices,null=True,blank=True, default=Program.BASIC)
+    feedback = models.TextField(null=True,blank=True)
     def __str__(self):
         return "%s's profile" % str(self.user.email if self.user.email else self.student_id)
 
@@ -99,3 +101,23 @@ class Result(models.Model):
 
     def __str__(self):
         return '%d מספר קורס: %s %s' % (self.student.student_id, self.course.course_id, self.course.course_group.name)
+    
+class Question(models.Model):
+    office = models.ForeignKey(Office,on_delete=models.CASCADE,null=True)
+    text = models.TextField()
+
+
+class Result_info(models.Model):
+    student = models.ForeignKey(Student,on_delete=models.CASCADE,null=False)
+    courses_txt = models.TextField()
+    explanation = models.TextField()
+
+class Answer(models.Model):
+    student = models.ForeignKey(Student,on_delete=models.CASCADE,null=False)
+    question = models.ForeignKey(Question,on_delete=models.CASCADE,null=False)
+    text = models.TextField()
+
+    class Meta:
+        unique_together = (('student', 'question'),)
+        index_together = (('student', 'question'),)
+        

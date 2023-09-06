@@ -1,7 +1,7 @@
 from abc import ABC
 
 from rest_framework import serializers
-from .models import Course, Course_group, Student, Ranking, Result, Office, Course_time
+from .models import Course, Course_group, Student, Ranking, Result, Office, Course_time, Question,Answer, Result_info
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework import serializers
@@ -125,3 +125,10 @@ class ResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = Result
         fields = ['id', 'student', 'course', 'selected']
+
+
+class ResultInfoSerializer(serializers.ModelSerializer):
+    student = StudentSerializer()
+    class Meta:
+        model = Result_info
+        fields = ['id','student','courses_txt','explanation']
