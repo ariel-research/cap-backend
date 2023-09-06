@@ -1,7 +1,7 @@
 from abc import ABC
 
 from rest_framework import serializers
-from .models import Course, Course_group, Student, Ranking, Result, Office, Course_time, Question,Answer, Result_info
+from .models import Course, Course_group, Student, Ranking, Result, Office, Course_time, Result_info
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework import serializers

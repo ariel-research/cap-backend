@@ -101,23 +101,8 @@ class Result(models.Model):
 
     def __str__(self):
         return '%d מספר קורס: %s %s' % (self.student.student_id, self.course.course_id, self.course.course_group.name)
-    
-class Question(models.Model):
-    office = models.ForeignKey(Office,on_delete=models.CASCADE,null=True)
-    text = models.TextField()
-
 
 class Result_info(models.Model):
     student = models.ForeignKey(Student,on_delete=models.CASCADE,null=False)
     courses_txt = models.TextField()
     explanation = models.TextField()
-
-class Answer(models.Model):
-    student = models.ForeignKey(Student,on_delete=models.CASCADE,null=False)
-    question = models.ForeignKey(Question,on_delete=models.CASCADE,null=False)
-    text = models.TextField()
-
-    class Meta:
-        unique_together = (('student', 'question'),)
-        index_together = (('student', 'question'),)
-        
