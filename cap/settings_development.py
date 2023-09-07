@@ -54,6 +54,23 @@ DATABASES = {
     }
 }
 
+REST_REGISTRATION = {
+    'REGISTER_VERIFICATION_URL': f'http://{HOSTNAME}:{PORT_FRONTEND}/verify-user/',
+    'RESET_PASSWORD_VERIFICATION_URL': f'http://{HOSTNAME}:{PORT_FRONTEND}/reset-password/',
+    'REGISTER_EMAIL_VERIFICATION_URL': f'http://{HOSTNAME}:{PORT_FRONTEND}/verify-email/',
+    'LOGIN_RETRIEVE_TOKEN': True,
+    'VERIFICATION_FROM_EMAIL': 'no-reply@csariel.xyz',
+    'REGISTER_VERIFICATION_EMAIL_TEMPLATES': {
+        'subject':  'verify_email/email_verification_subject.txt',
+        'html_body':  'verify_email/email_verification_msg.html'
+    },
+       'RESET_PASSWORD_VERIFICATION_EMAIL_TEMPLATES': {
+        'subject':  'reset_password/user_reset_password.txt',
+        'html_body':  'reset_password/user_reset_password.html'
+    },
+
+}
+
 NOSE_ARGS = ['--nocapture',
              '--nologcapture',]
 

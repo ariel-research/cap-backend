@@ -33,7 +33,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = [HOSTNAME,DOMAIN,'localhost']
 
-ADMINS = [('admin', 'ariel.research23@gmail.com')]
+ADMINS = [('admin', 'admin@csariel.xyz')]
 
 
 # Application definition
@@ -113,7 +113,6 @@ DATABASES = {
 REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
 
     ),
@@ -124,11 +123,11 @@ REST_FRAMEWORK = {
 }
 
 REST_REGISTRATION = {
-    'REGISTER_VERIFICATION_URL': 'http://localhost:3000/verify-user/',
-    'RESET_PASSWORD_VERIFICATION_URL': 'http://localhost:3000/reset-password/',
-    'REGISTER_EMAIL_VERIFICATION_URL': 'http://localhost:3000/verify-email/',
+    'REGISTER_VERIFICATION_URL': 'http://csariel.xyz/verify-user/',
+    'RESET_PASSWORD_VERIFICATION_URL': 'http://csariel.xyz/reset-password/',
+    'REGISTER_EMAIL_VERIFICATION_URL': 'https://csariel.xyz/verify-email/',
     'LOGIN_RETRIEVE_TOKEN': True,
-    'VERIFICATION_FROM_EMAIL': 'ariel.research23@gmail.com',
+    'VERIFICATION_FROM_EMAIL': 'no-reply@csariel.xyz',
     'REGISTER_VERIFICATION_EMAIL_TEMPLATES': {
         'subject':  'verify_email/email_verification_subject.txt',
         'html_body':  'verify_email/email_verification_msg.html'
