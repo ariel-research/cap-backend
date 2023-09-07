@@ -106,4 +106,7 @@ class Result_info(models.Model):
     student = models.OneToOneField(Student,on_delete=models.CASCADE,null=False)
     courses_txt = models.TextField()
     explanation = models.TextField()
+
+    def __str__(self):
+        return f'{self.student.user.email}'
     
