@@ -600,9 +600,9 @@ class ResultViewSet(viewsets.ModelViewSet):
     def get_results_info(self, request):
         user = request.user
         student = Student.objects.get(user=user)
-        """results = ''
-        explantion = ''
-        if not Result.objects.filter(student=student).exists:
+        courses_txt = ''
+        explanation = ''
+        """if not Result.objects.filter(student=student).exists:
             try:
                 with open(settings.MEDIA_ROOT+f'/explanations/allocation.json', "r") as results_file:
                     results = file.read()
@@ -611,9 +611,15 @@ class ResultViewSet(viewsets.ModelViewSet):
             except FileNotFoundError as e:
                     return Response({'error':str(e)}, status=status.HTTP_404_NOT_FOUND)
         """
-        result = Result_info.objects.get(student=student)
-        result_serizalizer = ResultInfoSerializer(result)
-        return Response({'courses_txt':result_serizalizer.data['courses_txt'],'explanation':result_serizalizer.data['explanation']},
+        try:
+            result = Result_info.objects.get(student=student)
+            result_serizalizer = ResultInfoSerializer(result)
+            courses_txt = result_serizalizer.data['courses_txt']
+            explanation = result_serizalizer.data['explanation']
+        except Exception as e:
+            courses_txt = ''
+            explanation = ''
+        return Response({'courses_txt':courses_txt,'explanation':explanation},
                         status=status.HTTP_200_OK)
 
 
