@@ -19,7 +19,7 @@ from .serializers import CourseSerializer, Course_groupSerializer, CourseMiniSer
 from api.SP_algorithm.main import main
 from .forms import StudentForm
 import logging
-
+from django.utils.translation import gettext as _
 
 
 class RegisterView(viewsets.ModelViewSet):
@@ -49,9 +49,8 @@ class RegisterView(viewsets.ModelViewSet):
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            if student_form['student_id'].errors:
-                return Response({'message': 'מספר ת.ז בשימוש'}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({'error': str(student_form.errors)}, status=status.HTTP_400_BAD_REQUEST)
+            error_messages = [_(message) for field, error_list in student_form.errors.items() for message in error_list]
+            return Response({'error': str(error_messages)}, status=status.HTTP_400_BAD_REQUEST)
         
 
     @action(detail=False, methods=['GET'])
@@ -191,6 +190,15 @@ class Course_groupViewSet(viewsets.ModelViewSet):
         course_group = Course_group.objects.filter(is_elective=True).filter(office=student_office)
         serializer = Course_groupSerializer(course_group, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['GET'])
+    def student_ranking_status(self, request):
+        user = request.user
+        student = Student.objects.get(user=user)
+        if Ranking.objects.filter(student=student).exists():
+            return self.get_last_rating(request)
+        return Response(False, status=status.HTTP_200_OK)
+
 
     @action(detail=False, methods=['GET'])
     def get_last_rating(self, request):

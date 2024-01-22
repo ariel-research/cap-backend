@@ -123,9 +123,9 @@ REST_FRAMEWORK = {
 }
 
 REST_REGISTRATION = {
-    'REGISTER_VERIFICATION_URL': 'http://csariel.xyz/verify-user/',
-    'RESET_PASSWORD_VERIFICATION_URL': 'http://csariel.xyz/reset-password/',
-    'REGISTER_EMAIL_VERIFICATION_URL': 'https://csariel.xyz/verify-email/',
+    'REGISTER_VERIFICATION_URL': 'http://faircourse.csariel.xyz/verify-user/',
+    'RESET_PASSWORD_VERIFICATION_URL': 'http://faircourse.csariel.xyz/reset-password/',
+    'REGISTER_EMAIL_VERIFICATION_URL': 'https://faircourse.csariel.xyz/verify-email/',
     'LOGIN_RETRIEVE_TOKEN': True,
     'VERIFICATION_FROM_EMAIL': 'no-reply@csariel.xyz',
     'REGISTER_VERIFICATION_EMAIL_TEMPLATES': {
@@ -136,6 +136,8 @@ REST_REGISTRATION = {
         'subject':  'reset_password/user_reset_password.txt',
         'html_body':  'reset_password/user_reset_password.html'
     },
+    'REGISTER_SERIALIZER_CLASS': 'api.serializers.RegisterUserSerializer',
+
 
 }
 
@@ -160,7 +162,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'he'
 
 TIME_ZONE = 'Asia/Jerusalem'
 
@@ -169,6 +171,10 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, 'locale'),  # Adjust the path as needed
+]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/

@@ -5,6 +5,7 @@ from .models import Course, Course_group, Student, Ranking, Result, Office, Cour
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework import serializers
+from rest_registration.api.serializers import DefaultRegisterUserSerializer
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -26,6 +27,33 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         #user.save()
         #Token.objects.create(user=user)
+        return user
+
+
+class RegisterUserSerializer(DefaultRegisterUserSerializer):
+
+    def create(self, validated_data):    
+        from .forms import StudentForm
+        from django.db import transaction
+
+        with transaction.atomic():
+            user = super().create(validated_data)
+            student_data = {'user': user.id, 'username': validated_data['username'],
+                             'email': validated_data['username'],
+                               'amount_elective': self.initial_data['amount_elective'],
+                                 'program': self.initial_data['program'], 'student_id': user.id, 'office':1}
+            student_form =StudentForm(student_data)
+            if student_form.is_valid():
+                print("email sent")
+                try:
+                    Token.objects.create(user=user)
+                    student = student_form.save(commit=False)
+                    student.user = user
+                    student.save()
+                except Exception as e:
+                    print(e)
+            else:
+                    raise serializers.ValidationError()
         return user
 
 

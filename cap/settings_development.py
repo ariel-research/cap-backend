@@ -68,6 +68,7 @@ REST_REGISTRATION = {
         'subject':  'reset_password/user_reset_password.txt',
         'html_body':  'reset_password/user_reset_password.html'
     },
+    'REGISTER_SERIALIZER_CLASS': 'api.serializers.RegisterUserSerializer',
 
 }
 
