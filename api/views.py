@@ -6,7 +6,7 @@ from datetime import timedelta, datetime, date
 from rest_framework import viewsets, status
 from django.utils import timezone
 from cap import settings
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -25,33 +25,6 @@ from django.utils.translation import gettext as _
 class RegisterView(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = (AllowAny,)
-
-    @action(detail=False, methods=['POST'])
-    def register_student(self, request):
-        user_id = request.data.get('user_id')
-        amount_elective= request.data.get('amount_elective')
-        student_id =  request.data.get('student_id')
-        program = request.data.get('program')
-        student_form =StudentForm(request.data)
-        if student_form.is_valid():
-            print("valid form")
-            try:
-                student_user = User.objects.get(id = user_id)
-                print("email sent")
-                Token.objects.create(user=student_user)
-                office = Office.objects.get(office_id=1)
-                """if user_type == "student":
-                    office = Office.objects.get(office_id=1)
-                else:
-                    office = Office.objects.get(office_id=2)"""
-                Student.objects.create(user=student_user, student_id=student_id, amount_elective=amount_elective, program=program,office=office)
-                return Response({'message': 'קישור לאימות חשבונך נשלח לכתובת האימייל שהזנת (בדקו בספאם)'}, status=status.HTTP_202_ACCEPTED)                    
-            except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            error_messages = [_(message) for field, error_list in student_form.errors.items() for message in error_list]
-            return Response({'error': str(error_messages)}, status=status.HTTP_400_BAD_REQUEST)
-        
 
     @action(detail=False, methods=['GET'])
     def get_user_status(self, request):
@@ -72,7 +45,7 @@ class RegisterView(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = (AllowAny,)
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (SessionAuthentication,)
     queryset= User.objects.all()
     
     @action(detail=False, methods=['GET'])
@@ -84,7 +57,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
     
     @action(detail=False, methods=['GET'])
@@ -180,7 +153,7 @@ class StudentViewSet(viewsets.ModelViewSet):
 class Course_groupViewSet(viewsets.ModelViewSet):
     queryset = Course_group.objects.all()
     serializer_class = Course_groupSerializer
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     @action(detail=False, methods=['GET'])
@@ -265,7 +238,7 @@ class Course_groupViewSet(viewsets.ModelViewSet):
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     @action(detail=False, methods=['POST'])
@@ -380,7 +353,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 class OfficeViewSet(viewsets.ModelViewSet):
     queryset = Office.objects.all()
     serializer_class = OfficeSerializer
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
 
@@ -522,7 +495,7 @@ class OfficeViewSet(viewsets.ModelViewSet):
 class RankingViewSet(viewsets.ModelViewSet):
     queryset = Ranking.objects.all()
     serializer_class = RankingSerializer
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
     
     @action(detail=False, methods=['POST'])
@@ -581,7 +554,7 @@ class RankingViewSet(viewsets.ModelViewSet):
 class ResultViewSet(viewsets.ModelViewSet):
     queryset = Result.objects.all()
     serializer_class = ResultSerializer
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     @action(detail=False, methods=['GET'])

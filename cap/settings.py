@@ -59,15 +59,16 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 
 ROOT_URLCONF = 'cap.urls'
-
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     f'http://{HOSTNAME}:{PORT_FRONTEND}',
     f'http://{HOSTNAME}',
@@ -113,7 +114,7 @@ DATABASES = {
 REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
 
     ),
     'DEFAULT_PERMISSION_CLASSES': (
@@ -126,7 +127,7 @@ REST_REGISTRATION = {
     'REGISTER_VERIFICATION_URL': 'http://faircourse.csariel.xyz/verify-user/',
     'RESET_PASSWORD_VERIFICATION_URL': 'http://faircourse.csariel.xyz/reset-password/',
     'REGISTER_EMAIL_VERIFICATION_URL': 'https://faircourse.csariel.xyz/verify-email/',
-    'LOGIN_RETRIEVE_TOKEN': True,
+    'LOGIN_AUTHENTICATE_SESSION': True,
     'VERIFICATION_FROM_EMAIL': 'no-reply@csariel.xyz',
     'REGISTER_VERIFICATION_EMAIL_TEMPLATES': {
         'subject':  'verify_email/email_verification_subject.txt',
@@ -140,7 +141,9 @@ REST_REGISTRATION = {
 
 
 }
-
+# settings.py
+SESSION_COOKIE_SECURE = False
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
 
